@@ -17,8 +17,8 @@ extern char id_table[SNUM][10];
 struct ssu_scoreTable score_table[QNUM];
 char id_table[SNUM][10];
 
-char stuDir[BUFLEN];
-char ansDir[BUFLEN];
+char stuDir[BUFLEN]; // 학생들이 제출한 답안들이 들어있는 디렉토리
+char ansDir[BUFLEN]; // 정답 파일들이 들어있는 디렉토리
 char errorDir[BUFLEN];
 char threadFiles[ARGNUM][FILELEN];
 char cIDs[ARGNUM][FILELEN];
@@ -31,45 +31,45 @@ int cOption = false;
 void ssu_score(int argc, char *argv[])
 {
 	char saved_path[BUFLEN];
-	int i;
+	int i; // for문에 사용할 인덱스 변수
 
 	for(i = 0; i < argc; i++){
-		if(!strcmp(argv[i], "-h")){
-			print_usage();
-			return;
+		if(!strcmp(argv[i], "-h")){ // -h 옵션이 적용되어 실행되면
+			print_usage(); // 사용법 출력
+			return; // ssu_score 종료
 		}
 	}
 
-	memset(saved_path, 0, BUFLEN);
-	if(argc >= 3 && strcmp(argv[1], "-c") != 0){
-		strcpy(stuDir, argv[1]);
-		strcpy(ansDir, argv[2]);
+	memset(saved_path, 0, BUFLEN); // saved_path을 0으로 초기화
+	if(argc >= 3 && strcmp(argv[1], "-c") != 0){ // ********** -c옵션이 무엇인지?
+		strcpy(stuDir, argv[1]); // <STUDENTDIR> 저장
+		strcpy(ansDir, argv[2]); // <TRUESETDIR> 저장
 	}
 
 	if(!check_option(argc, argv))
 		exit(1);
 
-	if(!eOption && !tOption && !pOption && cOption){
+	if(!eOption && !tOption && !pOption && cOption){ // -c 옵션만 적용됐으면
 		do_cOption(cIDs);
-		return;
+		return; // ssu_score 종료
 	}
 
-	getcwd(saved_path, BUFLEN);
+	getcwd(saved_path, BUFLEN); // 프로세스의 현재 위치 절대경로 저장 
 
-	if(chdir(stuDir) < 0){
-		fprintf(stderr, "%s doesn't exist\n", stuDir);
-		return;
+	if(chdir(stuDir) < 0){ // cd <STUDENTDIR>, cd 실패했다면
+		fprintf(stderr, "%s doesn't exist\n", stuDir); //에레메세지 출력
+		return; // ssu_score 종료
 	}
-	getcwd(stuDir, BUFLEN);
+	getcwd(stuDir, BUFLEN); // stuDir에 <STUDENTDIR>의 절대경로 저장
 
-	chdir(saved_path);
-	if(chdir(ansDir) < 0){
-		fprintf(stderr, "%s doesn't exist\n", ansDir);
-		return;
+	chdir(saved_path); // 다시 프로세스가 실행된 디렉토리로 이동
+	if(chdir(ansDir) < 0){ // cd <TRUESETDIR>, cd 실패했다면
+		fprintf(stderr, "%s doesn't exist\n", ansDir); //에러메세지 출력
+		return; // ssu_score 종료
 	}
-	getcwd(ansDir, BUFLEN);
+	getcwd(ansDir, BUFLEN); // ansDir에 <TRUESETDIR>의 절대경로 저장
 
-	chdir(saved_path);
+	chdir(saved_path); // 다시 프로세스가 실행된 디렉토리로 이동
 
 	set_scoreTable(ansDir);
 	set_idTable(stuDir);
