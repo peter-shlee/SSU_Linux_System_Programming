@@ -9,14 +9,14 @@ int main(void)
 	int fd;
 	int line_count = 0;
 
-	if((fd = open("ssu_test.txt", O_RDONLY)) < 0){
+	if ((fd = open("ssu_test.txt", O_RDONLY)) < 0){
 		fprintf(stderr, "open error for %s\n", "ssu_test.txt");
 		exit(1);
 	}
 
 	while(1){
-		if(read(fd, &character, 1) > 0){
-			if(character == '\n')
+		if (read(fd, &character, 1) > 0){
+			if (character == '\n')
 				line_count++;
 		} else
 			break;

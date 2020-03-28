@@ -15,7 +15,7 @@ int main(void)
 	fd1 = open(fname, O_RDONLY, 0644);
 	fd2 = open(fname, O_RDONLY, 0644);
 
-	if(fd1 < 0 || fd2 < 0){
+	if (fd1 < 0 || fd2 < 0){
 		fprintf(stderr, "open error for %s\n", fname);
 		exit(1);
 	}
