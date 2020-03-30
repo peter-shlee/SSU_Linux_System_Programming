@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
 void ssu_checkfile(char *fname, time_t *time) {
 	if (stat(fname, &statbuf) < 0) {
-		fprintf(stderr, "stat error for %s\n", fname);
+		fprintf(stderr, "Warning : ssu_checkfile() error\n");
 		exit(1);
 	}
 	else

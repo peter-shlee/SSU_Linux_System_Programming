@@ -83,15 +83,16 @@ void ssu_score(int argc, char *argv[])
 	return;
 }
 
+// 프로그램 실행 시 전달된 옵션을 체크하는 함수
 int check_option(int argc, char *argv[])
 {
-	int i, j;
-	int c;
+	int i, j; // 반복문에서 사용하는 인덱스
+	int c; // 옵션으로 전달된 알파벳
 
 	while((c = getopt(argc, argv, "e:thpc")) != -1)
 	{
 		switch(c){
-			case 'e':
+			case 'e': // 옵션 e
 				eOption = true;
 				strcpy(errorDir, optarg);
 
@@ -102,7 +103,7 @@ int check_option(int argc, char *argv[])
 					mkdir(errorDir, 0755);
 				}
 				break;
-			case 't':
+			case 't': // 옵션 t
 				tOption = true;
 				i = optind;
 				j = 0;
@@ -117,10 +118,10 @@ int check_option(int argc, char *argv[])
 					j++;
 				}
 				break;
-			case 'p':
+			case 'p': // 옵션 p
 				pOption = true;
 				break;
-			case 'c':
+			case 'c': // 옵션 c
 				cOption = true;
 				i = optind;
 				j = 0;
@@ -135,7 +136,7 @@ int check_option(int argc, char *argv[])
 					j++;
 				}
 				break;
-			case '?':
+			case '?': // 옵션 ?
 				printf("Unkown option %c\n", optopt);
 				return false;
 		}
