@@ -33,7 +33,7 @@
 #define BUFLEN 1024
 #define SNUM 100
 #define QNUM 100
-#define ARGNUM 5
+#define ARGNUM 5 // 가변인자를 받는 옵션의 경우, 최대로 받을 수 있는 가변인자의 개수는 5개로 제한
 
 struct ssu_scoreTable{
 	char qname[FILELEN];

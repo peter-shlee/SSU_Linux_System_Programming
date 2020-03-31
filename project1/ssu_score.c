@@ -23,6 +23,7 @@ char errorDir[BUFLEN];
 char threadFiles[ARGNUM][FILELEN];
 char cIDs[ARGNUM][FILELEN];
 
+// option flags
 int eOption = false;
 int tOption = false;
 int pOption = false;
@@ -94,49 +95,49 @@ int check_option(int argc, char *argv[])
 		switch(c){
 			case 'e': // 옵션 e
 				eOption = true;
-				strcpy(errorDir, optarg);
+				strcpy(errorDir, optarg); // 옵션에 전달된 인자(에러 메세지가 출력될 디렉토리)를 errorDir에 복사해 놓는다
 
-				if(access(errorDir, F_OK) < 0)
-					mkdir(errorDir, 0755);
+				if(access(errorDir, F_OK) < 0) // 디렉터리에 접근이 불가능하면
+					mkdir(errorDir, 0755);// 디렉터리 생성
 				else{
-					rmdirs(errorDir);
-					mkdir(errorDir, 0755);
+					rmdirs(errorDir); // 기존 디렉터리 제거
+					mkdir(errorDir, 0755); // 새 디렉터리 생성
 				}
 				break;
 			case 't': // 옵션 t
 				tOption = true;
-				i = optind;
-				j = 0;
+				i = optind; // 프로그램 전달인자 인덱스
+				j = 0; // 옵션 가변인자 인덱스
 
-				while(i < argc && argv[i][0] != '-'){
+				while(i < argc && argv[i][0] != '-'){ // t 옵션에 전달된 가변인자들 확인을 위한 반복문
 
-					if(j >= ARGNUM)
+					if(j >= ARGNUM) // 가변인자를 받는 옵션이므로 가변인자의 개수가 최대 개수를 넘지 않았는지 확인한다
 						printf("Maximum Number of Argument Exceeded.  :: %s\n", argv[i]);
-					else
+					else // 옵션에 전달된 인자를 threadFiles에 복사해 놓는다
 						strcpy(threadFiles[j], argv[i]);
 					i++; 
 					j++;
 				}
 				break;
-			case 'p': // 옵션 p
+			case 'p': // 옵션 p - 항상 수행되어야 한다
 				pOption = true;
 				break;
-			case 'c': // 옵션 c
+			case 'c': // 옵션 c - 필요없는 옵션
 				cOption = true;
-				i = optind;
-				j = 0;
+				i = optind; // 프로그램 전달인자 인덱스
+				j = 0; // 옵션에 전달된 가변인자 인덱스
 
-				while(i < argc && argv[i][0] != '-'){
+				while(i < argc && argv[i][0] != '-'){ // c 옵션에 전달된 가변인자들 확인을 위한 반복문
 
-					if(j >= ARGNUM)
+					if(j >= ARGNUM) // 가변인자를 받는 옵션이므로 가변인자의 개수가 최대 개수를 넘지 않았는지 확인
 						printf("Maximum Number of Argument Exceeded.  :: %s\n", argv[i]);
 					else
-						strcpy(cIDs[j], argv[i]);
+						strcpy(cIDs[j], argv[i]); // 옵션에 전달된 인자를 cIDs에 복사해 놓는다
 					i++; 
 					j++;
 				}
 				break;
-			case '?': // 옵션 ?
+			case '?': // unkown option
 				printf("Unkown option %c\n", optopt);
 				return false;
 		}
@@ -146,7 +147,7 @@ int check_option(int argc, char *argv[])
 }
 
 
-void do_cOption(char (*ids)[FILELEN])
+void do_cOption(char (*ids)[FILELEN]) // 선택한 학번의 점수를 출력하는 옵션 -> 필요 없음
 {
 	FILE *fp;
 	char tmp[BUFLEN];
@@ -177,7 +178,7 @@ void do_cOption(char (*ids)[FILELEN])
 	fclose(fp);
 }
 
-int is_exist(char (*src)[FILELEN], char *target)
+int is_exist(char (*src)[FILELEN], char *target) // - C 옵션에서 사용하는 함수 -> 필요 없음
 {
 	int i = 0;
 
@@ -193,15 +194,15 @@ int is_exist(char (*src)[FILELEN], char *target)
 	return false;
 }
 
-void set_scoreTable(char *ansDir)
+void set_scoreTable(char *ansDir) // csv 형식의 점수 테이블 파일 생성하는 함수
 {
 	char filename[FILELEN];
 
-	sprintf(filename, "%s/%s", ansDir, "score_table.csv");
+	sprintf(filename, "%s/%s", ansDir, "score_table.csv"); // 점수 테이블 파일이 생성될 경로를 생성해 filename에 저장
 
-	if(access(filename, F_OK) == 0)
-		read_scoreTable(filename);
-	else{
+	if(access(filename, F_OK) == 0) // 이미 점수 테이블 파일이 존재한다면
+		read_scoreTable(filename); // 기존의 파일에서 문제 번호와 점수들을 불러온다
+	else{ // 점수 테이블 파일이 존재하지 않는다면
 		make_scoreTable(ansDir);
 		write_scoreTable(filename);
 	}
@@ -210,56 +211,56 @@ void set_scoreTable(char *ansDir)
 void read_scoreTable(char *path)
 {
 	FILE *fp;
-	char qname[FILELEN];
-	char score[BUFLEN];
-	int idx = 0;
+	char qname[FILELEN]; // 문제 번호를 임시 저장할 배열
+	char score[BUFLEN]; // 점수를 임시 저장할 배열
+	int idx = 0; // score_table 구조체 배열의 인덱스
 
-	if((fp = fopen(path, "r")) == NULL){
+	if((fp = fopen(path, "r")) == NULL){ // 점수 테이블 오픈
 		fprintf(stderr, "file open error for %s\n", path);
 		return ;
 	}
 
-	while(fscanf(fp, "%[^,],%s\n", qname, score) != EOF){
-		strcpy(score_table[idx].qname, qname);
-		score_table[idx++].score = atof(score);
+	while(fscanf(fp, "%[^,],%s\n", qname, score) != EOF){ // 파일에서 문제 번호와 점수 읽어 들임
+		strcpy(score_table[idx].qname, qname); // 문제 번호를 score_table 구조체 배열에 저장
+		score_table[idx++].score = atof(score); // 해당 문제의 점수를 score_table 구조체 배열에 저장
 	}
 
 	fclose(fp);
 }
 
-void make_scoreTable(char *ansDir)
+void make_scoreTable(char *ansDir) // score_table 구조체 배열에 문제 번호와 점수를 저장해 점수 테이블을 만드는 함수
 {
-	int type, num;
+	int type, num; // type - 파일의 확장자 type을 저장해 놓을 변수
 	double score, bscore, pscore;
 	struct dirent *dirp, *c_dirp;
-	DIR *dp, *c_dp;
+	DIR *dp, *c_dp; // 
 	char tmp[BUFLEN];
-	int idx = 0;
+	int idx = 0; // 문제 총 개수 저장할 변수
 	int i;
 
-	num = get_create_type();
+	num = get_create_type(); // 사용자에게 점수를 어떤식으로 입력받을 것인지 선택하도록 한다
 
-	if(num == 1)
+	if(num == 1) // 점수 일괄 입력 선택 시
 	{
 		printf("Input value of blank question : ");
-		scanf("%lf", &bscore);
+		scanf("%lf", &bscore); // 빈칸 문제의 점수 입력받음
 		printf("Input value of program question : ");
-		scanf("%lf", &pscore);
+		scanf("%lf", &pscore); // 프로그램 문제의 점수 입력받음
 	}
 
-	if((dp = opendir(ansDir)) == NULL){
+	if((dp = opendir(ansDir)) == NULL){ // 디렉터리 open
 		fprintf(stderr, "open dir error for %s\n", ansDir);
 		return;
 	}	
 
 	while((dirp = readdir(dp)) != NULL)
 	{
-		if(!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, ".."))
+		if(!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) // 디렉터리 이름이 . 과 .. 이라면 pass
 			continue;
 
-		sprintf(tmp, "%s/%s", ansDir, dirp->d_name);
+		sprintf(tmp, "%s/%s", ansDir, dirp->d_name); // 다음에 확인할 디렉터리 경로 tmp에 저장
 
-		if((c_dp = opendir(tmp)) == NULL){
+		if((c_dp = opendir(tmp)) == NULL){ // 확인 할 디렉터리 open
 			fprintf(stderr, "open dir error for %s\n", tmp);
 			return;
 		}
@@ -269,7 +270,7 @@ void make_scoreTable(char *ansDir)
 			if(!strcmp(c_dirp->d_name, ".") || !strcmp(c_dirp->d_name, ".."))
 				continue;
 
-			if((type = get_file_type(c_dirp->d_name)) < 0)
+			if((type = get_file_type(c_dirp->d_name)) < 0) // 파일의 확장자가 .txt or .c 가 아니라면 pass
 				continue;
 
 			strcpy(score_table[idx++].qname, c_dirp->d_name);
@@ -281,46 +282,46 @@ void make_scoreTable(char *ansDir)
 	closedir(dp);
 	sort_scoreTable(idx);
 
-	for(i = 0; i < idx; i++)
+	for(i = 0; i < idx; i++) // 모든 문제에 대하여
 	{
-		type = get_file_type(score_table[i].qname);
+		type = get_file_type(score_table[i].qname); // 파일의 확장자가 무엇인지 확인해 type에 저장
 
-		if(num == 1)
+		if(num == 1) // 점수 일괄 입력 선택 시
 		{
-			if(type == TEXTFILE)
+			if(type == TEXTFILE) // .txt 파일이라면 (빈칸문제)
 				score = bscore;
-			else if(type == CFILE)
+			else if(type == CFILE) // .c 파일이라면 (프로그램 문제)
 				score = pscore;
 		}
-		else if(num == 2)
+		else if(num == 2) // 점수 각각 입력 선택 시
 		{
-			printf("Input of %s: ", score_table[i].qname);
-			scanf("%lf", &score);
+			printf("Input of %s: ", score_table[i].qname); // 점수 입력받을 문제 번호 출력
+			scanf("%lf", &score); // 해당 문제의 점수 입력받음
 		}
 
-		score_table[i].score = score;
+		score_table[i].score = score; // score_table 구조체 배열에 문제 점수 저장
 	}
 }
 
-void write_scoreTable(char *filename)
+void write_scoreTable(char *filename) // score_table 구조체 배열의 내용을 csv 형식의 파일에 출력하는 함수
 {
 	int fd;
 	char tmp[BUFLEN];
 	int i;
-	int num = sizeof(score_table) / sizeof(score_table[0]);
+	int num = sizeof(score_table) / sizeof(score_table[0]); // 문제 총 개수
 
-	if((fd = creat(filename, 0666)) < 0){
+	if((fd = creat(filename, 0666)) < 0){ // 새로운 csv파일 생성
 		fprintf(stderr, "creat error for %s\n", filename);
 		return;
 	}
 
-	for(i = 0; i < num; i++)
+	for(i = 0; i < num; i++) // 모든 문제에 대하여
 	{
-		if(score_table[i].score == 0)
+		if(score_table[i].score == 0) // score_table에 저장된 점수가 0점이라면 끝 //////////////////////////////////////////////////////////// score_table 끝에 0 어디서 넣었는지?
 			break;
 
-		sprintf(tmp, "%s,%.2f\n", score_table[i].qname, score_table[i].score);
-		write(fd, tmp, strlen(tmp));
+		sprintf(tmp, "%s,%.2f\n", score_table[i].qname, score_table[i].score); // 문제 번호와 점수를 csv형식의 문자열로 만들어 tmp에 저장
+		write(fd, tmp, strlen(tmp)); // tmp의 내용을 파일에 write
 	}
 
 	close(fd);
@@ -341,13 +342,13 @@ void set_idTable(char *stuDir)
 	}
 
 	while((dirp = readdir(dp)) != NULL){
-		if(!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, ".."))
+		if(!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) // 디렉터리 이름이 . 과 .. 이라면 pass
 			continue;
 
-		sprintf(tmp, "%s/%s", stuDir, dirp->d_name);
+		sprintf(tmp, "%s/%s", stuDir, dirp->d_name); // 확인할 디렉터리의 경로를 tmp에 저장
 		stat(tmp, &statbuf);
 
-		if(S_ISDIR(statbuf.st_mode))
+		if(S_ISDIR(statbuf.st_mode)) // 디렉터리 파일이라면
 			strcpy(id_table[num++], dirp->d_name);
 		else
 			continue;
@@ -411,25 +412,25 @@ void get_qname_number(char *qname, int *num1, int *num2)
 		*num2 = atoi(p);
 }
 
-int get_create_type()
+int get_create_type() // 사용자가 문제 번호와 점수를 어떤 식으로 저장할지 선택하도록 하는 함수
 {
 	int num;
 
 	while(1)
 	{
 		printf("score_table.csv file doesn't exist in TREUDIR!\n");
-		printf("1. input blank question and program question's score. ex) 0.5 1\n");
-		printf("2. input all question's score. ex) Input value of 1-1: 0.1\n");
+		printf("1. input blank question and program question's score. ex) 0.5 1\n"); // 빈칸 문제와 프로그램 문제의 점수를 각각 일괄적으로 입력하려면 1 선택
+		printf("2. input all question's score. ex) Input value of 1-1: 0.1\n"); // 각각의 문제에 대해서 따로 따로 점수를 입력하려면 2 선택
 		printf("select type >> ");
-		scanf("%d", &num);
+		scanf("%d", &num); // 사용자의 선택을 읽어들인다
 
-		if(num != 1 && num != 2)
-			printf("not correct number!\n");
+		if(num != 1 && num != 2) // 사용자의 입력이 1도 아니고 2도 아닐 떄
+			printf("not correct number!\n"); //잘못된 입력이므로 다시 입력받음
 		else
 			break;
 	}
 
-	return num;
+	return num; // 사용자가 선택한 숫자 리턴
 }
 
 void score_students()
@@ -916,15 +917,15 @@ void redirection(char *command, int new, int old)
 	close(saved);
 }
 
-int get_file_type(char *filename)
+int get_file_type(char *filename) // 파일의 확장자를 확인하는 함수
 {
-	char *extension = strrchr(filename, '.');
+	char *extension = strrchr(filename, '.'); // filename에서 '.'이 있는 위치의 포인터를 extension에 저장
 
-	if(!strcmp(extension, ".txt"))
+	if(!strcmp(extension, ".txt")) // 파일 확장자가 .txt 라면
 		return TEXTFILE;
-	else if (!strcmp(extension, ".c"))
+	else if (!strcmp(extension, ".c")) // 파일 확장자가 .c 라면
 		return CFILE;
-	else
+	else // .c도, .txt도 아니라면
 		return -1;
 }
 
