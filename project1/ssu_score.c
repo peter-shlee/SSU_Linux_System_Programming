@@ -544,16 +544,16 @@ char *get_answer(int fd, char *result)
 	char c;
 	int idx = 0;
 
-	memset(result, 0, BUFLEN);
-	while(read(fd, &c, 1) > 0)
+	memset(result, 0, BUFLEN); // 전달인자로 받은 result를 0으로 초기화
+	while(read(fd, &c, 1) > 0) // fd에서 한문자씩 읽어온다
 	{
-		if(c == ':')
-			break;
+		if(c == ':') // 읽은 문자가 ':' 이라면
+			break; // 반복 종료
 		
-		result[idx++] = c;
+		result[idx++] = c; // result배열에 읽은 문자 넣는다
 	}
-	if(result[strlen(result) - 1] == '\n')
-		result[strlen(result) - 1] = '\0';
+	if(result[strlen(result) - 1] == '\n') // result에 들어간 문자열의 마지막 문자가 개행문자라면
+		result[strlen(result) - 1] = '\0'; // 널문자로 바꿈
 
 	return result;
 }
@@ -565,36 +565,36 @@ int score_blank(char *id, char *filename) // 빈칸 문제를 채점하는 함�
 	int idx, start;
 	char tmp[BUFLEN];
 	char s_answer[BUFLEN], a_answer[BUFLEN];
-	char qname[FILELEN];
-	int fd_std, fd_ans;
-	int result = true;
-	int has_semicolon = false;
+	char qname[FILELEN]; // 문제 번호를 저장할 배열
+	int fd_std, fd_ans; // fd_std는 학생의 답안파일의 파일디스크립터, fd_ans는 정답 파일의 파일 디스크립터
+	int result = true; // 정답인지 오답인지
+	int has_semicolon = false; // 학생의 답 맨 끝에 세미콜론이 있었는지 기록해 놓을  변수
 
-	memset(qname, 0, sizeof(qname));
-	memcpy(qname, filename, strlen(filename) - strlen(strrchr(filename, '.')));
+	memset(qname, 0, sizeof(qname)); // qname 배열 0 초기화
+	memcpy(qname, filename, strlen(filename) - strlen(strrchr(filename, '.'))); //  qname에 확장자 명을 뺀 파일 이름(문제 번호)을 넣음
 
-	sprintf(tmp, "%s/%s/%s", stuDir, id, filename);
-	fd_std = open(tmp, O_RDONLY);
-	strcpy(s_answer, get_answer(fd_std, s_answer));
+	sprintf(tmp, "%s/%s/%s", stuDir, id, filename); // 현재 문제 경로 tmp에 저장
+	fd_std = open(tmp, O_RDONLY); // fd_std에 학생의 답안 파일 파일디스크립터 저장
+	strcpy(s_answer, get_answer(fd_std, s_answer)); // 학생이 제출한 답안 파일에서 답을 읽어와 s_answer에 저장
 
-	if(!strcmp(s_answer, "")){
+	if(!strcmp(s_answer, "")){ // 학생의 답이 비어있다면
 		close(fd_std);
-		return false;
+		return false; // 오답
 	}
 
-	if(!check_brackets(s_answer)){
+	if(!check_brackets(s_answer)){ // 여는 괄호, 닫는 괄호의 짝이 맞지 않으면
 		close(fd_std);
-		return false;
+		return false; // 오답
 	}
 
-	strcpy(s_answer, ltrim(rtrim(s_answer)));
+	strcpy(s_answer, ltrim(rtrim(s_answer))); // 학생의 답 앞뒤에 있는 white space를 제거하여 다시 s_answer에 담는다
 
-	if(s_answer[strlen(s_answer) - 1] == ';'){
-		has_semicolon = true;
-		s_answer[strlen(s_answer) - 1] = '\0';
+	if(s_answer[strlen(s_answer) - 1] == ';'){ // 학생의 답 제일 뒤에 ;이 있다면
+		has_semicolon = true; // 세미콜론이 있었다고 기록하고
+		s_answer[strlen(s_answer) - 1] = '\0'; // 널문자를 넣는다
 	}
 
-	if(!make_tokens(s_answer, tokens)){
+	if(!make_tokens(s_answer, tokens)){ // 400줄짜리 함수
 		close(fd_std);
 		return false;
 	}

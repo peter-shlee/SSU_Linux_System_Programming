@@ -171,11 +171,11 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 	int lcount, rcount;
 	int p_str;
 	
-	clear_tokens(tokens);
+	clear_tokens(tokens); // token 배열 0으로 초기화
 
-	start = str;
+	start = str; // start에 str의 시작 위치 저장
 	
-	if(is_typeStatement(str) == 0) 
+	if(is_typeStatement(str) == 0) // 맨 앞에 type이 써있는 구문이라면
 		return false;	
 	
 	while(1)
@@ -1035,7 +1035,7 @@ int is_character(char c)
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-int is_typeStatement(char *str)
+int is_typeStatement(char *str) // type이 맨 앞에 있는 구문(선언문?)인지 확인하는 함수
 { 
 	char *start;
 	char str2[BUFLEN] = {0}; 
@@ -1044,37 +1044,37 @@ int is_typeStatement(char *str)
 	int i;	 
 	
 	start = str;
-	strncpy(str2,str,strlen(str));
-	remove_space(str2);
+	strncpy(str2,str,strlen(str)); // str2에 str 복사
+	remove_space(str2); // str2에 있는 공백문자들 제거
 
-	while(start[0] == ' ')
+	while(start[0] == ' ') // start 앞에 있는 공백문자들 제거
 		start += 1;
 
-	if(strstr(str2, "gcc") != NULL)
+	if(strstr(str2, "gcc") != NULL) // str2에 "gcc"라는 문자열이 포함되어 있다면
 	{
-		strncpy(tmp2, start, strlen("gcc"));
-		if(strcmp(tmp2,"gcc") != 0)
-			return 0;
-		else
-			return 2;
+		strncpy(tmp2, start, strlen("gcc")); // tmp2에 start의 앞에서 세문자(strlen("gcc")) 복사
+		if(strcmp(tmp2,"gcc") != 0) // tmp2(start의 맨 앞 문자 세개)가 gcc가 아니라면
+			return 0; // 0 리턴
+		else // gcc라면
+			return 2; // 2 리턴
 	}
 	
 	for(i = 0; i < DATATYPE_SIZE; i++)
 	{
-		if(strstr(str2,datatype[i]) != NULL)
+		if(strstr(str2,datatype[i]) != NULL) // str2에 특정 데이터 타입이 포함되어 있다면
 		{	
-			strncpy(tmp, str2, strlen(datatype[i]));
-			strncpy(tmp2, start, strlen(datatype[i]));
+			strncpy(tmp, str2, strlen(datatype[i])); // str2의 맨 앞에 있는 단어 tmp로 복사
+			strncpy(tmp2, start, strlen(datatype[i])); // start의 맨 앞에 있는 단어 tmp로 복사
 			
-			if(strcmp(tmp, datatype[i]) == 0)
-				if(strcmp(tmp, tmp2) != 0)
-					return 0;  
-				else
-					return 2;
+			if(strcmp(tmp, datatype[i]) == 0) // 위에서 복사한 단어가 해당 데이터 타입 이라면
+				if(strcmp(tmp, tmp2) != 0) // tmp와 tmp2가 같다면
+					return 0; // 0 리턴
+				else // tmp와 tmp2가 다르다면
+					return 2; // 2 리턴
 		}
 
 	}
-	return 1;
+	return 1; // 위의 것들 중 아무것도 아니라면 1 리턴
 
 }
 
@@ -1247,7 +1247,7 @@ int reset_tokens(int start, char tokens[TOKEN_CNT][MINLEN])
 	return true;
 }
 
-void clear_tokens(char tokens[TOKEN_CNT][MINLEN])
+void clear_tokens(char tokens[TOKEN_CNT][MINLEN]) // 전달인자로 받은 token 배열을 0으로 초기화하는 함수
 {
 	int i;
 
@@ -1261,20 +1261,20 @@ char *rtrim(char *_str)
 	char *end;
 
 	strcpy(tmp, _str);
-	end = tmp + strlen(tmp) - 1;
-	while(end != _str && isspace(*end))
+	end = tmp + strlen(tmp) - 1; // tmp의 마지막 문자 위치를 가리키는 포인터
+	while(end != _str && isspace(*end)) // 문자열 끝(오른쪽)부터 앞쪽으로 이동하며 해당 문자가 white space가 아닐 때까지 이동
 		--end;
 
 	*(end + 1) = '\0';
-	_str = tmp;
-	return _str;
+	_str = tmp; // 전달인자로 받은 _str에 tmp를 넣어서
+	return _str; // 리턴
 }
 
 char *ltrim(char *_str)
 {
-	char *start = _str;
+	char *start = _str; // _str의 맨 앞 문자를 가리키는 포인터
 
-	while(*start != '\0' && isspace(*start))
+	while(*start != '\0' && isspace(*start)) // 문자열 맨 앞(왼쪽)부터 뒤쪽으로 이동하며 해당 문자가 white space 또는 널문자가 아닐 때까지 이동
 		++start;
 	_str = start;
 	return _str;
@@ -1323,7 +1323,7 @@ char* remove_extraspace(char *str)
 
 
 
-void remove_space(char *str)
+void remove_space(char *str) // 문자열 내에 있는 공백문자 지우는 함수
 {
 	char* i = str;
 	char* j = str;
@@ -1337,28 +1337,28 @@ void remove_space(char *str)
 	*i = 0;
 }
 
-int check_brackets(char *str)
+int check_brackets(char *str) // 괄호가 짝을 맞춰 제대로 있는지 검사하는 함수
 {
 	char *start = str;
-	int lcount = 0, rcount = 0;
+	int lcount = 0, rcount = 0; // lcount는 여는 괄호 개수, rcount는 닫는 괄호 개수
 	
 	while(1){
-		if((start = strpbrk(start, "()")) != NULL){
-			if(*(start) == '(')
+		if((start = strpbrk(start, "()")) != NULL){ // '(',')'이 있는 위치 리턴
+			if(*(start) == '(') // 여는 괄호라면
 				lcount++;
-			else
+			else // 닫는 괄호라면
 				rcount++;
 
-			start += 1; 		
+			start += 1; // 뒤쪽 문자열 검사를 위해 + 1
 		}
-		else
+		else // 괄호 더이상 찾지 못했다면 반복 종료
 			break;
 	}
 
-	if(lcount != rcount)
-		return 0;
+	if(lcount != rcount) // 여는 괄호와 닫는 괄호의 개수가 다르면 잘못된 것
+		return 0; // 괄호가 잘못됐으면 0 리턴
 	else 
-		return 1;
+		return 1; // 괄호 개수가 일치하면 1 리턴
 }
 
 int get_token_cnt(char tokens[TOKEN_CNT][MINLEN])
