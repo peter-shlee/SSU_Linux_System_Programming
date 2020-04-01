@@ -72,8 +72,8 @@ void ssu_score(int argc, char *argv[])
 
 	chdir(saved_path); // 다시 프로세스가 실행된 디렉토리로 이동
 
-	set_scoreTable(ansDir);
-	set_idTable(stuDir);
+	set_scoreTable(ansDir); // 문제별 점수들이 저장될 score_table 구조체 배열을 setting
+	set_idTable(stuDir); // 학생들의 학번이 저장될 id_table 배열을 setting
 
 	printf("grading student's test papers..\n");
 	score_students();
@@ -194,7 +194,7 @@ int is_exist(char (*src)[FILELEN], char *target) // - C 옵션에서 사용하�
 	return false;
 }
 
-void set_scoreTable(char *ansDir) // csv 형식의 점수 테이블 파일 생성하는 함수
+void set_scoreTable(char *ansDir) // 각 문제별 점수를 저장해 놓는 score_table 구조체 배열을 setting하는 함수
 {
 	char filename[FILELEN];
 
@@ -233,7 +233,7 @@ void make_scoreTable(char *ansDir) // score_table 구조체 배열에 문제 번
 	int type, num; // type - 파일의 확장자 type을 저장해 놓을 변수
 	double score, bscore, pscore;
 	struct dirent *dirp, *c_dirp;
-	DIR *dp, *c_dp; // 
+	DIR *dp, *c_dp; 
 	char tmp[BUFLEN];
 	int idx = 0; // 문제 총 개수 저장할 변수
 	int i;
@@ -328,7 +328,7 @@ void write_scoreTable(char *filename) // score_table 구조체 배열의 내용�
 }
 
 
-void set_idTable(char *stuDir)
+void set_idTable(char *stuDir) // 학생들의 학번을 저장해 놓는 id_table 배열을 setting 하는 함수
 {
 	struct stat statbuf;
 	struct dirent *dirp;
@@ -349,18 +349,18 @@ void set_idTable(char *stuDir)
 		stat(tmp, &statbuf);
 
 		if(S_ISDIR(statbuf.st_mode)) // 디렉터리 파일이라면
-			strcpy(id_table[num++], dirp->d_name);
+			strcpy(id_table[num++], dirp->d_name); // id_table에 디렉터리 이름(학번) 복사
 		else
 			continue;
 	}
 
-	sort_idTable(num);
+	sort_idTable(num); // id_table 정렬
 }
 
-void sort_idTable(int size)
+void sort_idTable(int size) // 학생들의 학번이 저장되어 있는 id_table을 정렬하는 함수
 {
 	int i, j;
-	char tmp[10];
+	char tmp[10]; // swap에 사용하는 임시 배열
 
 	for(i = 0; i < size - 1; i++){
 		for(j = 0; j < size - 1 -i; j++){
@@ -373,21 +373,21 @@ void sort_idTable(int size)
 	}
 }
 
-void sort_scoreTable(int size)
+void sort_scoreTable(int size) // 각 문제들의 점수가 저장되어있는 score_table 구조체 배열을 정렬하는 함수
 {
 	int i, j;
 	struct ssu_scoreTable tmp;
-	int num1_1, num1_2;
-	int num2_1, num2_2;
+	int num1_1, num1_2; // 비교할 첫번째 문제의 상위 문제 번호와 하위 문제 번호
+	int num2_1, num2_2; // 비교할 두번째 문제의 상위 문제 번호와 하위 문제 번호
 
 	for(i = 0; i < size - 1; i++){
 		for(j = 0; j < size - 1 - i; j++){
 
-			get_qname_number(score_table[j].qname, &num1_1, &num1_2);
-			get_qname_number(score_table[j+1].qname, &num2_1, &num2_2);
+			get_qname_number(score_table[j].qname, &num1_1, &num1_2); // 비교할 첫번째 문제 번호를 int형으로 변환
+			get_qname_number(score_table[j+1].qname, &num2_1, &num2_2); // 비교할 두번째 문제 번호를 int형으로 변환
 
 
-			if((num1_1 > num2_1) || ((num1_1 == num2_1) && (num1_2 > num2_2))){
+			if((num1_1 > num2_1) || ((num1_1 == num2_1) && (num1_2 > num2_2))){ // 첫번째 문제 번호가 두번째 문제 번호보다 큰 경우 SWAP
 
 				memcpy(&tmp, &score_table[j], sizeof(score_table[0]));
 				memcpy(&score_table[j], &score_table[j+1], sizeof(score_table[0]));
@@ -397,19 +397,19 @@ void sort_scoreTable(int size)
 	}
 }
 
-void get_qname_number(char *qname, int *num1, int *num2)
+void get_qname_number(char *qname, int *num1, int *num2) // 문자열로 되어있는 문제번호를 인자로 받아 int형으로 변환하는 함수, num1은 상위 문제번호, num2는 하위 문제번호를 뜻함
 {
 	char *p;
 	char dup[FILELEN];
 
-	strncpy(dup, qname, strlen(qname));
-	*num1 = atoi(strtok(dup, "-."));
+	strncpy(dup, qname, strlen(qname)); // 인자로 받은 문제 번호를 dup에 복사한다
+	*num1 = atoi(strtok(dup, "-.")); // '-', '.'을 기준으로 문자열을 분할, 분할한 문자열을 int형으로 변환
 	
-	p = strtok(NULL, "-.");
-	if(p == NULL)
+	p = strtok(NULL, "-."); // '-', '.'을 기준으로 위의 문자열을 이어서 분할
+	if(p == NULL) // 여기서 p가 NULL이면 하위 문제가 없는 문제
 		*num2 = 0;
-	else
-		*num2 = atoi(p);
+	else // 하위 문제가 있는 문제일 경우
+		*num2 = atoi(p); // 하위 문제 번호를 int형으로 변환해서 num2에 저장
 }
 
 int get_create_type() // 사용자가 문제 번호와 점수를 어떤 식으로 저장할지 선택하도록 하는 함수
@@ -433,97 +433,98 @@ int get_create_type() // 사용자가 문제 번호와 점수를 어떤 식으�
 	return num; // 사용자가 선택한 숫자 리턴
 }
 
-void score_students()
+void score_students() // 채점하는 함수
 {
-	double score = 0;
+	double score = 0; // 모든 학생의 총점을 저장할 변수
 	int num;
 	int fd;
 	char tmp[BUFLEN];
-	int size = sizeof(id_table) / sizeof(id_table[0]);
+	int size = sizeof(id_table) / sizeof(id_table[0]); // 전체 학생 수
 
-	if((fd = creat("score.csv", 0666)) < 0){
+	if((fd = creat("score.csv", 0666)) < 0){ // 채점 결과를 저장할 score.csv 파일 생성
 		fprintf(stderr, "creat error for score.csv");
 		return;
 	}
-	write_first_row(fd);
+	write_first_row(fd); // score.csv의 첫번째 열에 문제 번호 등 출력
 
-	for(num = 0; num < size; num++)
+	for(num = 0; num < size; num++) // 전체 학생 수 만큼 반복
 	{
 		if(!strcmp(id_table[num], ""))
 			break;
 
+		// 학번을 score.csv에 출력
 		sprintf(tmp, "%s,", id_table[num]);
 		write(fd, tmp, strlen(tmp)); 
 
-		score += score_student(fd, id_table[num]);
+		score += score_student(fd, id_table[num]); // 해당 학생에 대하여 채점을 한 뒤 학생의 총점을 전체 총점에 더함
 	}
 
-	if(pOption)
-		printf("Total average : %.2f\n", score / num);
+	if(pOption) // p옵션이 설정되어 있다면 -> 항상 수행되도록 해야함
+		printf("Total average : %.2f\n", score / num); // 전체 평균 점수 출력
 
 	close(fd);
 }
 
-double score_student(int fd, char *id)
+double score_student(int fd, char *id) // 한 학생에 대하여 채점을 하는 함수, 리턴값은 해당 학생의 총점
 {
-	int type;
-	double result;
-	double score = 0;
+	int type; // 해당 문제가 빈칸 문제인지, 프로그램 문제인지 저장할 변수
+	double result; // 해당 문제에 대한 정답 여부 또는 감점된 점수를 담을 변수
+	double score = 0; // 해당 학생의 총점을 저장할 변수
 	int i;
-	char tmp[BUFLEN];
-	int size = sizeof(score_table) / sizeof(score_table[0]);
+	char tmp[BUFLEN]; // 파일에 write하기 전에 임시로 담아 놓는 배열
+	int size = sizeof(score_table) / sizeof(score_table[0]); // 전체 문항 수
 
-	for(i = 0; i < size ; i++)
+	for(i = 0; i < size ; i++) // 전체 문항 수만큼 반복
 	{
-		if(score_table[i].score == 0)
+		if(score_table[i].score == 0) // 해당 문제의 배점이 0점이라면 채점 중단
 			break;
 
-		sprintf(tmp, "%s/%s/%s", stuDir, id, score_table[i].qname);
+		sprintf(tmp, "%s/%s/%s", stuDir, id, score_table[i].qname); // 해당 학생의 해당 문제 디렉터리로 이동
 
-		if(access(tmp, F_OK) < 0)
+		if(access(tmp, F_OK) < 0) // 해당 문제 디렉터리에 접근이 불가하다면
 			result = false;
 		else
 		{
-			if((type = get_file_type(score_table[i].qname)) < 0)
+			if((type = get_file_type(score_table[i].qname)) < 0) // 파일의 확장자 명으로 빈칸 문제인지, 프로그램 문제인지 확인
 				continue;
 			
-			if(type == TEXTFILE)
-				result = score_blank(id, score_table[i].qname);
-			else if(type == CFILE)
-				result = score_program(id, score_table[i].qname);
+			if(type == TEXTFILE) // .txt 파일(빈칸 문제)이라면
+				result = score_blank(id, score_table[i].qname); // 빈칸문제 채점
+			else if(type == CFILE) // .c 파일(프로그램 문제)이라면
+				result = score_program(id, score_table[i].qname); // 프로그램 문제 채점
 		}
 
-		if(result == false)
-			write(fd, "0,", 2);
+		if(result == false) // 해당 학생이 문제를 틀렸을 때
+			write(fd, "0,", 2); // 0점 부여, score.csv에 해당 문제 0점이라고 출력
 		else{
-			if(result == true){
-				score += score_table[i].score;
-				sprintf(tmp, "%.2f,", score_table[i].score);
+			if(result == true){ // 해당 학생이 문제를 맞혔을 때
+				score += score_table[i].score; // 해당 문제의 배점을 학생의 점수에 더함
+				sprintf(tmp, "%.2f,", score_table[i].score); // tmp에 해당 문제에 대하여 학생이 받은 점수를 기록
 			}
-			else if(result < 0){
-				score = score + score_table[i].score + result;
-				sprintf(tmp, "%.2f,", score_table[i].score + result);
+			else if(result < 0){ // result 값이 0보다 작다면 감점
+				score = score + score_table[i].score + result; // 감점된 점수를 반영하여 학생의 점수에 더함
+				sprintf(tmp, "%.2f,", score_table[i].score + result); // tmp에 해당 문제에 대하여 학생이 받은 점수를 기록
 			}
-			write(fd, tmp, strlen(tmp));
+			write(fd, tmp, strlen(tmp)); // score.csv에 tmp에 기록해 놨던 점수 출력
 		}
 	}
 
-	if(pOption)
-		printf("%s is finished.. score : %.2f\n", id, score); 
+	if(pOption) // p옵션이 설정되어 있다면 -> 항상 수행되도록 해야함
+		printf("%s is finished.. score : %.2f\n", id, score); // 해당 학생의 총점 출력
 	else
 		printf("%s is finished..\n", id);
 
-	sprintf(tmp, "%.2f\n", score);
-	write(fd, tmp, strlen(tmp));
+	sprintf(tmp, "%.2f\n", score); // 학생의 총점 tmp에 기록
+	write(fd, tmp, strlen(tmp)); // tmp에 있는 학생의 총점 score.csv에 출력
 
-	return score;
+	return score; // 해당 학생의 총점 return
 }
 
-void write_first_row(int fd)
+void write_first_row(int fd) // score.csv의 첫번째 열을 write하는 함수
 {
 	int i;
 	char tmp[BUFLEN];
-	int size = sizeof(score_table) / sizeof(score_table[0]);
+	int size = sizeof(score_table) / sizeof(score_table[0]); // 전체 문항 수
 
 	write(fd, ",", 1);
 
@@ -531,6 +532,7 @@ void write_first_row(int fd)
 		if(score_table[i].score == 0)
 			break;
 		
+		// score.csv에 문제 번호 출력
 		sprintf(tmp, "%s,", score_table[i].qname);
 		write(fd, tmp, strlen(tmp));
 	}
@@ -556,7 +558,7 @@ char *get_answer(int fd, char *result)
 	return result;
 }
 
-int score_blank(char *id, char *filename)
+int score_blank(char *id, char *filename) // 빈칸 문제를 채점하는 함수, 리턴값은 정답 여부 또는 감점된 점수
 {
 	char tokens[TOKEN_CNT][MINLEN];
 	node *std_root = NULL, *ans_root = NULL;
@@ -663,7 +665,7 @@ int score_blank(char *id, char *filename)
 	return false;
 }
 
-double score_program(char *id, char *filename)
+double score_program(char *id, char *filename) // 프로그램 문제를 채점하는 함수, 리턴값은 정답 여부 또는 감점된 점수
 {
 	double compile;
 	int result;
