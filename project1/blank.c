@@ -164,8 +164,8 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 	char *start, *end;
 	char tmp[BUFLEN];
 	char str2[BUFLEN];
-	char *op = "(),;><=!|&^/+-*\""; 
-	int row = 0;
+	char *op = "(),;><=!|&^/+-*\""; // 연산자들 모음
+	int row = 0; // 몇번째 토큰인지?
 	int i;
  	int isPointer;
 	int lcount, rcount;
@@ -180,27 +180,27 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 	
 	while(1)
 	{
-		if((end = strpbrk(start, op)) == NULL)
+		if((end = strpbrk(start, op)) == NULL) // 문자열(start)에 연산자가 하나도 포함되어 있지 않으면
 			break;
 
-		if(start == end){
+		if(start == end){ // 다음 토큰이 연산자라면
 
-			if(!strncmp(start, "--", 2) || !strncmp(start, "++", 2)){
-				if(!strncmp(start, "++++", 4)||!strncmp(start,"----",4))
+			if(!strncmp(start, "--", 2) || !strncmp(start, "++", 2)){ // -- 또는 ++라면
+				if(!strncmp(start, "++++", 4)||!strncmp(start,"----",4)) // ++++ 또는 ----이라면
 					return false;
 
-				if(is_character(*ltrim(start + 2))){
-					if(row > 0 && is_character(tokens[row - 1][strlen(tokens[row - 1]) - 1]))
+				if(is_character(*ltrim(start + 2))){ // -- 또는 ++ 뒤의 공백문자 제거 후 뒤에 오는 문자가 알파벳이나 숫자 문자라면
+					if(row > 0 && is_character(tokens[row - 1][strlen(tokens[row - 1]) - 1])) // 이전 토큰의 마지막 문자가 알파벳이나 숫자 문자가 아니라면
 						return false; 
 
-					end = strpbrk(start + 2, op);
-					if(end == NULL)
-						end = &str[strlen(str)];
-					while(start < end) {
+					end = strpbrk(start + 2, op); // 다음 연산자의 위치를 end에 저장
+					if(end == NULL) // 뒤에 더이상 연산자가 없다면
+						end = &str[strlen(str)]; // end에 문자열의 끝 위치를 저장
+					while(start < end) { // 문자열의 끝에 다다를 때까지
 						if(*(start - 1) == ' ' && is_character(tokens[row][strlen(tokens[row]) - 1]))
 							return false;
-						else if(*start != ' ')
-							strncat(tokens[row], start, 1);
+						else if(*start != ' ') // *start가 공백문자가 아니라면
+							strncat(tokens[row], start, 1); // tokens[row]에 한 문자씩 덧붙임
 						start++;	
 					}
 				}
@@ -227,41 +227,41 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 				|| !strncmp(start, ">=", 2) || !strncmp(start, "||", 2) || !strncmp(start, "&&", 2) 
 				|| !strncmp(start, "&=", 2) || !strncmp(start, "^=", 2) || !strncmp(start, "!=", 2) 
 				|| !strncmp(start, "|=", 2) || !strncmp(start, "+=", 2)	|| !strncmp(start, "-=", 2) 
-				|| !strncmp(start, "*=", 2) || !strncmp(start, "/=", 2)){
+				|| !strncmp(start, "*=", 2) || !strncmp(start, "/=", 2)){ // 이 연산자들로 시작하는 문자열이라면
 
-				strncpy(tokens[row], start, 2);
-				start += 2;
+				strncpy(tokens[row], start, 2); // 이 문자열들을 tokens[row]에 복사
+				start += 2; // 다음 토큰으로 이동
 			}
-			else if(!strncmp(start, "->", 2))
+			else if(!strncmp(start, "->", 2)) // -> 연산자라면
 			{
-				end = strpbrk(start + 2, op);
+				end = strpbrk(start + 2, op); // 이 뒤에 다른 연산자가 있는지 검사
 
-				if(end == NULL)
+				if(end == NULL) // 뒤에 다른 연산자가 없다면
 					end = &str[strlen(str)];
 
-				while(start < end){
-					if(*start != ' ')
-						strncat(tokens[row - 1], start, 1);
-					start++;
+				while(start < end){ // 문자열의 끝까지
+					if(*start != ' ') // *start가 공백문자가 아니라면
+						strncat(tokens[row - 1], start, 1); // tokens[row - 1] 에 덧붙임
+					start++; // 다음 문자로 이동
 				}
 				row--;
 			}
-			else if(*end == '&')
+			else if(*end == '&') // &연산자라면
 			{
 				
-				if(row == 0 || (strpbrk(tokens[row - 1], op) != NULL)){
-					end = strpbrk(start + 1, op);
-					if(end == NULL)
-						end = &str[strlen(str)];
+				if(row == 0 || (strpbrk(tokens[row - 1], op) != NULL)){ // 이 & 연산자가 첫번째 토큰이거나 이전 토큰에 연산자가 포함되어 있다면
+					end = strpbrk(start + 1, op); // end에 다음 연산자의 위치 저장
+					if(end == NULL) // 뒤에 더이상 연산자가 없다면
+						end = &str[strlen(str)]; // end에 문자열의 끝 위치 저장
 					
-					strncat(tokens[row], start, 1);
+					strncat(tokens[row], start, 1); // token[row]에 & 연산자 저장
 					start++;
 
 					while(start < end){
 						if(*(start - 1) == ' ' && tokens[row][strlen(tokens[row]) - 1] != '&')
 							return false;
 						else if(*start != ' ')
-							strncat(tokens[row], start, 1);
+							strncat(tokens[row], start, 1); // tokens[row]에 한문자씩 덧붙임
 						start++;
 					}
 				}
@@ -272,7 +272,7 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 				}
 				
 			}
-		  	else if(*end == '*')
+		  	else if(*end == '*') // *연산자라면
 			{
 				isPointer=0;
 
@@ -334,7 +334,7 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 					}
 				}
 			}
-			else if(*end == '(') 
+			else if(*end == '(')  // ( 연산자라면
 			{
 				lcount = 0;
 				rcount = 0;
@@ -373,7 +373,7 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 				}
 
 			}
-			else if(*end == '\"') 
+			else if(*end == '\"')  // \ 연산자라면
 			{
 				end = strpbrk(start + 1, "\"");
 				
@@ -387,7 +387,7 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 
 			}
 
-			else{
+			else{ // 그 외의 연산자라면
 				
 				if(row > 0 && !strcmp(tokens[row - 1], "++"))
 					return false;
@@ -416,7 +416,7 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 				}
 			}
 		}
-		else{ 
+		else{  // 다음 토큰이 연산자가 아니라면
 			if(all_star(tokens[row - 1]) && row > 1 && !is_character(tokens[row - 2][strlen(tokens[row - 2]) - 1]))   
 				row--;				
 
@@ -1030,9 +1030,9 @@ void free_node(node *cur)
 }
 
 
-int is_character(char c)
+int is_character(char c) // c가 알파벳, 숫자인지 체크하는 함수
 {
-	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); // 알파벳 대소문자 또는 숫자로 된 문자라면 1 리턴
 }
 
 int is_typeStatement(char *str) // type이 맨 앞에 있는 구문(선언문?)인지 확인하는 함수
