@@ -10,7 +10,7 @@ int main(void)
 	char *fname2 = "ssu_file2";
 
 	if (stat(fname1, &statbuf) < 0)
-		fprintf(stderr, "stat error\n", fname1);
+		fprintf(stderr, "stat error %s\n", fname1);
 
 	if (chmod(fname1, (statbuf.st_mode & ~S_IXGRP) | S_ISUID) < 0)
 		fprintf(stderr, "chmod error %s\n", fname1);
