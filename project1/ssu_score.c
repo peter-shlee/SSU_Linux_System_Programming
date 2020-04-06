@@ -667,35 +667,35 @@ int score_blank(char *id, char *filename) // 빈칸 문제를 채점하는 함�
 
 double score_program(char *id, char *filename) // 프로그램 문제를 채점하는 함수, 리턴값은 정답 여부 또는 감점된 점수
 {
-	double compile;
+	double compile; // 컴파일 결과를 저장할 변수
 	int result;
 
-	compile = compile_program(id, filename);
+	compile = compile_program(id, filename); // 컴파일 수행
 
-	if(compile == ERROR || compile == false)
-		return false;
+	if(compile == ERROR || compile == false) // 컴파일 실패했다면
+		return false; // false 리턴
 	
-	result = execute_program(id, filename);
+	result = execute_program(id, filename); // 정답 파일과 학생의 답안 파일을 실행하고, 결과 파일을 비교하여 정답인지 오답인지 확인한다.
 
-	if(!result)
-		return false;
+	if(!result) // 오답이라면
+		return false; // false 리턴
 
-	if(compile < 0)
-		return compile;
+	if(compile < 0) // 감점됐다면
+		return compile; // 감점된 점수 리턴
 
-	return true;
+	return true; // 정답이면 true 리턴
 }
 
 int is_thread(char *qname)
 {
 	int i;
-	int size = sizeof(threadFiles) / sizeof(threadFiles[0]);
+	int size = sizeof(threadFiles) / sizeof(threadFiles[0]); // -lpthread 옵션으로 실행할 프로그램들의 목록이 저장된 threadFiles배열의 크기 계산
 
-	for(i = 0; i < size; i++){
-		if(!strcmp(threadFiles[i], qname))
-			return true;
+	for(i = 0; i < size; i++){ 
+		if(!strcmp(threadFiles[i], qname)) // 인자로 전달된 qname이 threadFiles에 있다면
+			return true; // true 리턴
 	}
-	return false;
+	return false; // qname이 threadFiles에 없으면 false 리턴
 }
 
 double compile_program(char *id, char *filename)
@@ -708,88 +708,88 @@ double compile_program(char *id, char *filename)
 	off_t size;
 	double result;
 
-	memset(qname, 0, sizeof(qname));
-	memcpy(qname, filename, strlen(filename) - strlen(strrchr(filename, '.')));
+	memset(qname, 0, sizeof(qname)); // qname 0초기화
+	memcpy(qname, filename, strlen(filename) - strlen(strrchr(filename, '.'))); // qname에 확장자명 제외한 파일명 복사
 	
-	isthread = is_thread(qname);
+	isthread = is_thread(qname); // -lpthread 옵션으로 컴파일을 할것인지 확인
 
-	sprintf(tmp_f, "%s/%s/%s", ansDir, qname, filename);
-	sprintf(tmp_e, "%s/%s/%s.exe", ansDir, qname, qname);
+	sprintf(tmp_f, "%s/%s/%s", ansDir, qname, filename); // 컴파일 할 파일 명
+	sprintf(tmp_e, "%s/%s/%s.exe", ansDir, qname, qname); // 컴파일 결과로 나올 실행파일의 파일 명
 
-	if(tOption && isthread)
-		sprintf(command, "gcc -o %s %s -lpthread", tmp_e, tmp_f);
+	if(tOption && isthread) // -lpthread 옵션으로 컴파일할 파일이라면
+		sprintf(command, "gcc -o %s %s -lpthread", tmp_e, tmp_f); // -lpthread 옵션으로 컴파일 할 때 사용할 문자열
 	else
-		sprintf(command, "gcc -o %s %s", tmp_e, tmp_f);
+		sprintf(command, "gcc -o %s %s", tmp_e, tmp_f); // 그냥 컴파일 할 때 사용할 문자열
 
-	sprintf(tmp_e, "%s/%s/%s_error.txt", ansDir, qname, qname);
-	fd = creat(tmp_e, 0666);
+	sprintf(tmp_e, "%s/%s/%s_error.txt", ansDir, qname, qname); // 컴파일 에러를 출력할 파일명 생성
+	fd = creat(tmp_e, 0666); // 에러 출력할 파일 생성
 
-	redirection(command, fd, STDERR);
-	size = lseek(fd, 0, SEEK_END);
-	close(fd);
-	unlink(tmp_e);
+	redirection(command, fd, STDERR); // command를 실행하고 실행하는 동안 STDERR에 출력될 내용을 fd(에러 출력할 파일)에 출력함
+	size = lseek(fd, 0, SEEK_END); // 에러 출력된 파일의 크기 저장
+	close(fd); // 에러 출력된 파일 close
+	unlink(tmp_e); // 에러 출력된 파일 삭제 - 학생 답안 파일이 아닌 정답 파일 컴파일 시 에러 내용이므로 저장할 필요 없음
 
-	if(size > 0)
-		return false;
+	if(size > 0) // 컴파일 에러 발생했다면
+		return false; // false 리턴
 
-	sprintf(tmp_f, "%s/%s/%s", stuDir, id, filename);
-	sprintf(tmp_e, "%s/%s/%s.stdexe", stuDir, id, qname);
+	sprintf(tmp_f, "%s/%s/%s", stuDir, id, filename); // 컴파일 할 학생 답안 파일
+	sprintf(tmp_e, "%s/%s/%s.stdexe", stuDir, id, qname); // 컴파일 결과로 나올 실행파일의 파일 명
 
-	if(tOption && isthread)
-		sprintf(command, "gcc -o %s %s -lpthread", tmp_e, tmp_f);
+	if(tOption && isthread) // -lpthread 옵션으로 컴파일할 파일이라면
+		sprintf(command, "gcc -o %s %s -lpthread", tmp_e, tmp_f); // -lpthread 옵션으로 컴파일 할 때 사용할 command
 	else
-		sprintf(command, "gcc -o %s %s", tmp_e, tmp_f);
+		sprintf(command, "gcc -o %s %s", tmp_e, tmp_f); // 그냥 컴파일 할 때 사용할 command
 
-	sprintf(tmp_f, "%s/%s/%s_error.txt", stuDir, id, qname);
-	fd = creat(tmp_f, 0666);
+	sprintf(tmp_f, "%s/%s/%s_error.txt", stuDir, id, qname); // 컴파일 에러 내용을 저장할 파일 명
+	fd = creat(tmp_f, 0666); // 에러 저장할 파일 생성
 
-	redirection(command, fd, STDERR);
-	size = lseek(fd, 0, SEEK_END);
-	close(fd);
+	redirection(command, fd, STDERR); // command를 실행하고 실행하는 동안 STDERR에 출력될 내용을 fd(에러 출력할 파일)에 출력함
+	size = lseek(fd, 0, SEEK_END); // 에러 출력된 파일의 크기 저장
+	close(fd); // 에러 출력된 파일 close
 
-	if(size > 0){
-		if(eOption)
+	if(size > 0){ // 컴파일 에러 발생했다면
+		if(eOption) // e 옵션이 지정되어 있다면
 		{
-			sprintf(tmp_e, "%s/%s", errorDir, id);
-			if(access(tmp_e, F_OK) < 0)
-				mkdir(tmp_e, 0755);
+			sprintf(tmp_e, "%s/%s", errorDir, id); // 에러 파일 저장할 경로
+			if(access(tmp_e, F_OK) < 0) // 해당 경로에 접근 불가하면
+				mkdir(tmp_e, 0755); // 디렉터리 생성
 
-			sprintf(tmp_e, "%s/%s/%s_error.txt", errorDir, id, qname);
-			rename(tmp_f, tmp_e);
+			sprintf(tmp_e, "%s/%s/%s_error.txt", errorDir, id, qname); // 에러 파일명
+			rename(tmp_f, tmp_e); // 위에서 만들어둔 에러파일의 이름을 제대로 된 에러 파일명으로 바꾼다
 
-			result = check_error_warning(tmp_e);
+			result = check_error_warning(tmp_e); // 에러 내용을 확인해 결과 점수를 계산한다
 		}
 		else{ 
-			result = check_error_warning(tmp_f);
-			unlink(tmp_f);
+			result = check_error_warning(tmp_f); // 에러 내용을 확인해 결과 점수를 계산한다
+			unlink(tmp_f); // 에러내용 저장했던 파일 삭제
 		}
 
-		return result;
+		return result; // 결과 점수 리턴
 	}
 
-	unlink(tmp_f);
-	return true;
+	unlink(tmp_f); // 에러 내용 파일 삭제
+	return true; // 컴파일 성공 했으므로 true 리턴
 }
 
-double check_error_warning(char *filename)
+double check_error_warning(char *filename) // 컴파일 에러 내용이 저장된 파일을 이용해 error인지 warning인지 확인해서 결과 점수를 리턴하는 함수
 {
 	FILE *fp;
 	char tmp[BUFLEN];
 	double warning = 0;
 
-	if((fp = fopen(filename, "r")) == NULL){
+	if((fp = fopen(filename, "r")) == NULL){ // 파일을 읽기 모드로 open
 		fprintf(stderr, "fopen error for %s\n", filename);
-		return false;
+		return false; // 파일을 열지 못했으면 false 리턴
 	}
 
-	while(fscanf(fp, "%s", tmp) > 0){
-		if(!strcmp(tmp, "error:"))
-			return ERROR;
-		else if(!strcmp(tmp, "warning:"))
-			warning += WARNING;
+	while(fscanf(fp, "%s", tmp) > 0){ // 파일 내용 확인
+		if(!strcmp(tmp, "error:")) // error: 라는 문자열이 들어있으면
+			return ERROR; // ERROR 리턴
+		else if(!strcmp(tmp, "warning:")) // warning: 이라는 문자열이 들어있으면
+			warning += WARNING; // WARNING 점수를 누적해서 저장
 	}
 
-	return warning;
+	return warning; // 점수 리턴
 }
 
 int execute_program(char *id, char *filename)
@@ -801,41 +801,41 @@ int execute_program(char *id, char *filename)
 	pid_t pid;
 	int fd;
 
-	memset(qname, 0, sizeof(qname));
-	memcpy(qname, filename, strlen(filename) - strlen(strrchr(filename, '.')));
+	memset(qname, 0, sizeof(qname)); // qname 0초기화
+	memcpy(qname, filename, strlen(filename) - strlen(strrchr(filename, '.'))); // qname에 문제 번호 저장
 
-	sprintf(ans_fname, "%s/%s/%s.stdout", ansDir, qname, qname);
-	fd = creat(ans_fname, 0666);
+	sprintf(ans_fname, "%s/%s/%s.stdout", ansDir, qname, qname); // 정답 실행파일의 실행결과를 저장할 파일
+	fd = creat(ans_fname, 0666); // 실행결과 저장파일 생성
 
-	sprintf(tmp, "%s/%s/%s.exe", ansDir, qname, qname);
-	redirection(tmp, fd, STDOUT);
-	close(fd);
+	sprintf(tmp, "%s/%s/%s.exe", ansDir, qname, qname); // 정답 실행 파일
+	redirection(tmp, fd, STDOUT); //  정답 실행 파일을 실행시키고 그 결과를 위에서 만든 실행 결과 저장 파일에 저장
+	close(fd); // 실행 결과 저장 파일 close
 
-	sprintf(std_fname, "%s/%s/%s.stdout", stuDir, id, qname);
-	fd = creat(std_fname, 0666);
+	sprintf(std_fname, "%s/%s/%s.stdout", stuDir, id, qname); // 학생의 답안을 실행한 결과를 저장할 파일
+	fd = creat(std_fname, 0666); // 학생 답안 실행결과 저장파일 생성
 
-	sprintf(tmp, "%s/%s/%s.stdexe &", stuDir, id, qname);
+	sprintf(tmp, "%s/%s/%s.stdexe &", stuDir, id, qname); // 학생 답안 실행 파일
 
-	start = time(NULL);
-	redirection(tmp, fd, STDOUT);
+	start = time(NULL); // 학생 답안 실행 시작시간 저장
+	redirection(tmp, fd, STDOUT);// 학생 답안을 실행하고 결과를 저장
 	
-	sprintf(tmp, "%s.stdexe", qname);
-	while((pid = inBackground(tmp)) > 0){
-		end = time(NULL);
+	sprintf(tmp, "%s.stdexe", qname); // 학생 답안 실행파일 파일명
+	while((pid = inBackground(tmp)) > 0){ // 학생 답안 실행파일이 실행되는 동안 반복하며 체크
+		end = time(NULL); // 얼마동안 실행중인지 저장
 
-		if(difftime(end, start) > OVER){
-			kill(pid, SIGKILL);
+		if(difftime(end, start) > OVER){ // 실행 제한 시간을 초과했다면
+			kill(pid, SIGKILL); // 종료시킴
 			close(fd);
-			return false;
+			return false; // false 리턴
 		}
 	}
 
 	close(fd);
 
-	return compare_resultfile(std_fname, ans_fname);
+	return compare_resultfile(std_fname, ans_fname); // 정답과 학생 답안의 결과를 비교해 리턴
 }
 
-pid_t inBackground(char *name)
+pid_t inBackground(char *name) // 인자로 전달된 프로세스가 실행중인지 확인하는 함수
 {
 	pid_t pid;
 	char command[64];
@@ -847,66 +847,66 @@ pid_t inBackground(char *name)
 	fd = open("background.txt", O_RDWR | O_CREAT | O_TRUNC, 0666);
 
 	sprintf(command, "ps | grep %s", name);
-	redirection(command, fd, STDOUT);
+	redirection(command, fd, STDOUT); // ps | grep <name> 실행 뒤 그 결과를 background.txt에 저장
 
 	lseek(fd, 0, SEEK_SET);
-	read(fd, tmp, sizeof(tmp));
+	read(fd, tmp, sizeof(tmp)); // 위의 실행 결과를 읽어옴
 
-	if(!strcmp(tmp, "")){
+	if(!strcmp(tmp, "")){ // 아무것도 출력되지 않았다면
 		unlink("background.txt");
 		close(fd);
 		return 0;
 	}
 
-	pid = atoi(strtok(tmp, " "));
+	pid = atoi(strtok(tmp, " ")); // pid 저장
 	close(fd);
 
 	unlink("background.txt");
 	return pid;
 }
 
-int compare_resultfile(char *file1, char *file2)
+int compare_resultfile(char *file1, char *file2) // 프로그램을 실행한 결과로 나온 파일을 비교하는 함수
 {
 	int fd1, fd2;
 	char c1, c2;
 	int len1, len2;
 
-	fd1 = open(file1, O_RDONLY);
-	fd2 = open(file2, O_RDONLY);
+	fd1 = open(file1, O_RDONLY); // 첫번째 파일 open
+	fd2 = open(file2, O_RDONLY); // 두번째 파일 open
 
 	while(1)
 	{
-		while((len1 = read(fd1, &c1, 1)) > 0){
+		while((len1 = read(fd1, &c1, 1)) > 0){ // 첫번째 파일 공백문자 제거
 			if(c1 == ' ') 
 				continue;
 			else 
 				break;
 		}
-		while((len2 = read(fd2, &c2, 1)) > 0){
+		while((len2 = read(fd2, &c2, 1)) > 0){ // 두번째 파일 공백문자 제거
 			if(c2 == ' ') 
 				continue;
 			else 
 				break;
 		}
 		
-		if(len1 == 0 && len2 == 0)
-			break;
+		if(len1 == 0 && len2 == 0) // 파일의 끝이라면
+			break; // 반복 종료
 
-		to_lower_case(&c1);
-		to_lower_case(&c2);
+		to_lower_case(&c1); // c1에 저장된 문자가 대문자 알파벳인 경우 소문자로 변환
+		to_lower_case(&c2); // c2에 저장된 문자가 대문자 알파벳인 경우 소문자로 변환
 
-		if(c1 != c2){
+		if(c1 != c2){ // c1과 c2가 다르다면 프로그램 수행 결과가 다르다는 뜻이므로
 			close(fd1);
 			close(fd2);
-			return false;
+			return false; // 오답
 		}
 	}
 	close(fd1);
 	close(fd2);
-	return true;
+	return true; // 정답
 }
 
-void redirection(char *command, int new, int old)
+void redirection(char *command, int new, int old) // new 파일디스크립터를 old에 복사한 뒤 command를 실행한다. 실행한 후에는 다시 원래 old에 있던 값으로 복구
 {
 	int saved;
 
@@ -938,36 +938,36 @@ void rmdirs(const char *path)
 	DIR *dp;
 	char tmp[50];
 	
-	if((dp = opendir(path)) == NULL)
+	if((dp = opendir(path)) == NULL) // opendir 실패시
 		return;
 
-	while((dirp = readdir(dp)) != NULL)
+	while((dirp = readdir(dp)) != NULL) // 디렉토리 내용 확인
 	{
-		if(!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, ".."))
+		if(!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) // . .. 디렉토리는 pass
 			continue;
 
 		sprintf(tmp, "%s/%s", path, dirp->d_name);
 
-		if(lstat(tmp, &statbuf) == -1)
+		if(lstat(tmp, &statbuf) == -1) // stat구조체 가져옴
 			continue;
 
-		if(S_ISDIR(statbuf.st_mode))
-			rmdirs(tmp);
-		else
-			unlink(tmp);
+		if(S_ISDIR(statbuf.st_mode)) // 디렉토리 파일일 경우
+			rmdirs(tmp); // 재귀호출
+		else // 아닌경우
+			unlink(tmp); // unlink
 	}
 
 	closedir(dp);
 	rmdir(path);
 }
 
-void to_lower_case(char *c)
+void to_lower_case(char *c) // 대문자 알파벳을 소문자로 변환하는 함수
 {
-	if(*c >= 'A' && *c <= 'Z')
-		*c = *c + 32;
+	if(*c >= 'A' && *c <= 'Z') // 대문자 알파벳 일때만
+		*c = *c + 32; // 소문자로 변환
 }
 
-void print_usage()
+void print_usage() // 프로그램 사용법 출력
 {
 	printf("Usage : ssu_score <STUDENTDIR> <TRUEDIR> [OPTION]\n");
 	printf("Option : \n");
