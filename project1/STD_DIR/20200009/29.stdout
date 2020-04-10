@@ -1,0 +1,11 @@
+global value ssu_thread1: 1
+global value ssu_thread1: 2
+global value ssu_thread1: 3
+global value ssu_thread2: 4
+global value ssu_thread2: 5
+global value ssu_thread2: 6
+global value ssu_thread2: 7
+global value ssu_thread1: 8
+global value ssu_thread1: 9
+global value ssu_thread1: 10
+final value: 10

@@ -21,13 +21,22 @@ char stuDir[BUFLEN]; // 학생들이 제출한 답안들이 들어있는 디렉�
 char ansDir[BUFLEN]; // 정답 파일들이 들어있는 디렉토리
 char errorDir[BUFLEN];
 char threadFiles[ARGNUM][FILELEN];
-char cIDs[ARGNUM][FILELEN];
+// char cIDs[ARGNUM][FILELEN];
+char iIDs[ARGNUM][FILELEN];
+char mNums[ARGNUM][FILELEN];
 
 // option flags
 int eOption = false;
 int tOption = false;
-int pOption = false;
-int cOption = false;
+// p옵션, c옵션 필요 없으므로 수정 필요 //////////////////////////////////////////////////
+//int pOption = false;
+//int cOption = false;
+/////////////////////////////////////////////////////////////////////////////////////////
+int mOption = false;
+int iOption = false;
+
+void do_mOption();
+void do_iOption(char (*ids)[FILELEN]);// 헤더파일에 추가
 
 void ssu_score(int argc, char *argv[])
 {
@@ -50,8 +59,10 @@ void ssu_score(int argc, char *argv[])
 	if(!check_option(argc, argv))
 		exit(1);
 
-	if(!eOption && !tOption && !pOption && cOption){ // -c 옵션만 적용됐으면
-		do_cOption(cIDs);
+	// p옵션, c옵션 없으므로 수정 필요 //////////////////////////////////////////////////
+	if(!eOption && !tOption && !mOption && iOption && !strcmp(argv[1], "-i")){ // -c 옵션만 적용됐으면 --------------------> i옵션만 적용된 경우에는 채점이 안됨 수정 필요함
+		//do_cOption(cIDs);
+		do_iOption(iIDs);
 		return; // ssu_score 종료
 	}
 
@@ -74,12 +85,20 @@ void ssu_score(int argc, char *argv[])
 
 	set_scoreTable(ansDir); // 문제별 점수들이 저장될 score_table 구조체 배열을 setting
 	set_idTable(stuDir); // 학생들의 학번이 저장될 id_table 배열을 setting
+	//
+
+	if(mOption)
+		do_mOption();
 
 	printf("grading student's test papers..\n");
 	score_students();
 
-	if(cOption)
-		do_cOption(cIDs);
+	// c옵션 없으므로 수정 필요 //////////////////////////////////////////////////
+//	if(cOption)
+//		do_cOption(cIDs);
+	//////////////////////////////////////////////////////////////////////////////
+	if(iOption)
+		do_iOption(iIDs);
 
 	return;
 }
@@ -90,7 +109,9 @@ int check_option(int argc, char *argv[])
 	int i, j; // 반복문에서 사용하는 인덱스
 	int c; // 옵션으로 전달된 알파벳
 
-	while((c = getopt(argc, argv, "e:thpc")) != -1)
+	// 옵션 p, c가 필요 없으므로 수정 필요 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	while((c = getopt(argc, argv, "e:thmi")) != -1)
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	{
 		switch(c){
 			case 'e': // 옵션 e
@@ -119,29 +140,62 @@ int check_option(int argc, char *argv[])
 					j++;
 				}
 				break;
-			// 옵션 p - 항상 수행되어야 하므로 수정 필요 //////////////////////////////////////////////////////////////////////////
-			case 'p': 
-				pOption = true;
-				break;
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			// 옵션 c - 필요없는 옵션 /////////////////////////////////////////////////////////////////////////////////////////////
-			case 'c': 
-				cOption = true;
+			case 'm':
+				mOption = true;
+//				i = optind; // 프로그램 전달인자 인덱스
+//				j = 0; // 옵션에 전달된 가변인자 인덱스
+//
+//				while(i < argc && argv[i][0] != '-'){ // i 옵션에 전달된 가변인자들 확인을 위한 반복문
+//
+//					if(j >= ARGNUM) // 가변인자를 받는 옵션이므로 가변인자의 개수가 최대 개수를 넘지 않았는지 확인
+//						printf("Maximum Number of Argument Exceeded.  :: %s\n", argv[i]);
+//					else
+//						strcpy(mNums[j], argv[i]); // 옵션에 전달된 인자를 iIDs에 복사해 놓는다
+//					i++; 
+//					j++;
+//				}
+//
+//				break;
+			case 'i':
+				iOption = true;
 				i = optind; // 프로그램 전달인자 인덱스
 				j = 0; // 옵션에 전달된 가변인자 인덱스
 
-				while(i < argc && argv[i][0] != '-'){ // c 옵션에 전달된 가변인자들 확인을 위한 반복문
+				while(i < argc && argv[i][0] != '-'){ // i 옵션에 전달된 가변인자들 확인을 위한 반복문
 
 					if(j >= ARGNUM) // 가변인자를 받는 옵션이므로 가변인자의 개수가 최대 개수를 넘지 않았는지 확인
 						printf("Maximum Number of Argument Exceeded.  :: %s\n", argv[i]);
 					else
-						strcpy(cIDs[j], argv[i]); // 옵션에 전달된 인자를 cIDs에 복사해 놓는다
+						strcpy(iIDs[j], argv[i]); // 옵션에 전달된 인자를 iIDs에 복사해 놓는다
 					i++; 
 					j++;
 				}
+
 				break;
+
+//			// 옵션 p - 항상 수행되어야 하므로 수정 필요 //////////////////////////////////////////////////////////////////////////
+//			case 'p': 
+//				pOption = true;
+//				break;
+//			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			// 옵션 c - 필요없는 옵션 /////////////////////////////////////////////////////////////////////////////////////////////
+//			case 'c': 
+//				cOption = true;
+//				i = optind; // 프로그램 전달인자 인덱스
+//				j = 0; // 옵션에 전달된 가변인자 인덱스
+//
+//				while(i < argc && argv[i][0] != '-'){ // c 옵션에 전달된 가변인자들 확인을 위한 반복문
+//
+//					if(j >= ARGNUM) // 가변인자를 받는 옵션이므로 가변인자의 개수가 최대 개수를 넘지 않았는지 확인
+//						printf("Maximum Number of Argument Exceeded.  :: %s\n", argv[i]);
+//					else
+//						strcpy(cIDs[j], argv[i]); // 옵션에 전달된 인자를 cIDs에 복사해 놓는다
+//					i++; 
+//					j++;
+//				}
+//				break;
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			case '?': // unkown option
+			case '?': // 파라미터가 빠진 채로 옵션이 전달된 경우
 				printf("Unkown option %c\n", optopt);
 				return false;
 		}
@@ -182,7 +236,94 @@ void do_cOption(char (*ids)[FILELEN]) // 선택한 학번의 점수를 출력하
 	fclose(fp);
 }
 
-int is_exist(char (*src)[FILELEN], char *target) // - C 옵션에서 사용하는 함수 -> 필요 없음
+void do_iOption(char (*ids)[FILELEN])
+{
+	FILE *fp;
+	char tmp[BUFLEN];
+	char numbers[BUFLEN];
+	int i = 0;
+	char *p, *saved, *np;
+	int isFirstWrongAnswer = true;
+
+
+	if((fp = fopen("score.csv", "r")) == NULL){
+		fprintf(stderr, "file open error for score.csv\n");
+		return;
+	}
+
+	fscanf(fp, "%s\n", numbers);
+
+	while(fscanf(fp, "%s\n", tmp) != EOF)
+	{
+		isFirstWrongAnswer = true;
+		np = numbers;
+		p = strtok(tmp, ",");
+
+		if(!is_exist(ids, tmp))
+			continue;
+
+		printf("%s's wrong answer : \n", tmp);
+
+		while((p = strtok(NULL, ",")) != NULL) {
+			np = strchr(np, ',') + 1;
+			if (!strcmp(p, "0")) {
+				if(!isFirstWrongAnswer) printf(", ");
+				else isFirstWrongAnswer = false;
+				while(*np != ',') {
+					printf("%c", *np);
+					++np;
+				}
+			}	
+		}
+		printf("\n");
+
+	}
+	fclose(fp);
+}
+
+void do_mOption()
+{
+	int i;
+	double newScore;
+	char filename[FILELEN];
+	char qname[FILELEN]; // 문제 번호를 저장할 배열
+	char inputqname[FILELEN];
+
+
+	printf("do_mOption\n");
+
+	while(true) {
+		printf("Input question's number to modify >> ");
+		scanf("%s", inputqname);
+
+		if(!strcmp(inputqname, "no")) break;
+
+		i = 0;
+		while(score_table[i].score != 0) {
+			memset(qname, 0, sizeof(qname));
+			memcpy(qname, score_table[i].qname, strlen(score_table[i].qname) - strlen(strrchr(score_table[i].qname, '.'))); //  qname에 확장자 명을 뺀 파일 이름(문제 번호)을 넣음
+			if(strcmp(qname, inputqname)) {
+				++i;
+				continue;
+			}
+
+			printf("Current score : %.2f\n", score_table[i].score);
+			printf("New score : ");
+			scanf("%lf", &newScore);
+			score_table[i].score = newScore;
+
+			break;
+		}
+
+	}
+
+
+	sprintf(filename, "%s", "score_table.csv"); // 점수 테이블 파일이 생성될 경로를 생성해 filename에 저장
+	write_scoreTable(filename);
+	printf("do_mOption end\n");
+}
+
+int is_exist(char (*src)[FILELEN], char *target) // src 문장열 배열 안에 target 문자열이 들어있는지 확인하는 함수
 {
 	int i = 0;
 
