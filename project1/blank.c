@@ -519,61 +519,61 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 					|| is_character(tokens[row - 1][strlen(tokens[row - 1]) - 1])
 					|| tokens[row - 1][strlen(tokens[row - 1]) - 1] == '.') ){ // 이번에 구한 토큰이 첫번째 토큰이 아니고, 마지막 문자가 숫자나 알파벳이고, 앞 토큰이 gcc이거나, 앞 토큰의 마지막 문자가 숫자나 알파벳이거나, '.'이라면
 			
-			if(row > 1 && strcmp(tokens[row-2],"(") == 0)
+			if(row > 1 && strcmp(tokens[row-2],"(") == 0) // 앞앞 토큰이 (라면
 			{
-				if(strcmp(tokens[row-1], "struct") != 0 && strcmp(tokens[row-1], "unsigned") != 0)
+				if(strcmp(tokens[row-1], "struct") != 0 && strcmp(tokens[row-1], "unsigned") != 0) // 앞 토큰이 struct와 unsigned가 아니라면
 					return false;
 			}
-			else if(row == 1 && is_character(tokens[row][strlen(tokens[row]) - 1])) {
-				if(strcmp(tokens[0], "extern") != 0 && strcmp(tokens[0], "unsigned") != 0 && is_typeStatement(tokens[0]) != 2)	
+			else if(row == 1 && is_character(tokens[row][strlen(tokens[row]) - 1])) { // 이 토큰이 두번째 토큰이고, 토큰의 마지막 문자가 숫자나 알파벳이라면
+				if(strcmp(tokens[0], "extern") != 0 && strcmp(tokens[0], "unsigned") != 0 && is_typeStatement(tokens[0]) != 2)// 첫번째 토큰이 extern이나 unsigned, gcc가 아니라면
 					return false;
 			}
-			else if(row > 1 && is_typeStatement(tokens[row - 1]) == 2){
-				if(strcmp(tokens[row - 2], "unsigned") != 0 && strcmp(tokens[row - 2], "extern") != 0)
+			else if(row > 1 && is_typeStatement(tokens[row - 1]) == 2){ // 앞 토큰이 gcc라면
+				if(strcmp(tokens[row - 2], "unsigned") != 0 && strcmp(tokens[row - 2], "extern") != 0) // 앞앞 토큰이 unsigned, extern이 아니라면
 					return false;
 			}
 		} 
 	}
 
 
-	if(row > 0)
+	if(row > 0) // 첫번째 토큰이 아니라면
 	{
 
 		
-		if(strcmp(tokens[0], "#include") == 0 || strcmp(tokens[0], "include") == 0 || strcmp(tokens[0], "struct") == 0){ 
-			clear_tokens(tokens); 
-			strcpy(tokens[0], remove_extraspace(str)); 
+		if(strcmp(tokens[0], "#include") == 0 || strcmp(tokens[0], "include") == 0 || strcmp(tokens[0], "struct") == 0){ // 첫번째 토큰이 #include, include, struct라면
+			clear_tokens(tokens); // 토큰 초기화
+			strcpy(tokens[0], remove_extraspace(str)); // 토큰에 공백 제거한 str을 넣는다
 		}
 	}
 
-	if(is_typeStatement(tokens[0]) == 2 || strstr(tokens[0], "extern") != NULL){
-		for(i = 1; i < TOKEN_CNT; i++){
-			if(strcmp(tokens[i],"") == 0)  
+	if(is_typeStatement(tokens[0]) == 2 || strstr(tokens[0], "extern") != NULL){ // 첫번째 토큰이 gcc이거나 extern이라면
+		for(i = 1; i < TOKEN_CNT; i++){ // 모든 토큰들 확인
+			if(strcmp(tokens[i],"") == 0)   // 토큰이 null string이라면 반복 종료
 				break;		       
 
-			if(i != TOKEN_CNT -1 )
-				strcat(tokens[0], " ");
-			strcat(tokens[0], tokens[i]);
-			memset(tokens[i], 0, sizeof(tokens[i]));
+			if(i != TOKEN_CNT -1 ) // 마지막 토큰이 아니라면
+				strcat(tokens[0], " "); // 첫번째 토큰 뒤에 공백 추가
+			strcat(tokens[0], tokens[i]); // 첫번째 토큰뒤에 tokens[i] 덧붙임
+			memset(tokens[i], 0, sizeof(tokens[i])); // tokens[i] 0초기화
 		}
 	}
 	
 	
-	while((p_str = find_typeSpecifier(tokens)) != -1){ 
-		if(!reset_tokens(p_str, tokens))
-			return false;
+	while((p_str = find_typeSpecifier(tokens)) != -1){ // 토큰들 중 형식 지정자가 있다면
+		if(!reset_tokens(p_str, tokens)) // 토큰들을 정리한다
+			return false; // 잘못된게 발견되면 false 리턴
 	}
 
 	
-	while((p_str = find_typeSpecifier2(tokens)) != -1){  
-		if(!reset_tokens(p_str, tokens))
-			return false;
+	while((p_str = find_typeSpecifier2(tokens)) != -1){ // 토큰들 중 struct 형식 지정자가 있다면
+		if(!reset_tokens(p_str, tokens)) // 토큰들을 정리한다
+			return false; // 잘못된게 발견되면 false 리턴
 	}
 	
 	return true;
 }
 
-node *make_tree(node *root, char (*tokens)[MINLEN], int *idx, int parentheses)
+node *make_tree(node *root, char (*tokens)[MINLEN], int *idx, int parentheses) // tokens에 들어있는 토큰들을 트리에 넣는 함수
 {
 	node *cur = root;
 	node *new;
@@ -584,101 +584,104 @@ node *make_tree(node *root, char (*tokens)[MINLEN], int *idx, int parentheses)
 
 	while(1)	
 	{
-		if(strcmp(tokens[*idx], "") == 0)
+		if(strcmp(tokens[*idx], "") == 0) // 토큰이 null string이라면
 			break;
 	
-		if(!strcmp(tokens[*idx], ")"))
+		if(!strcmp(tokens[*idx], ")")) // 토큰이 ) 라면
 			return get_root(cur);
 
-		else if(!strcmp(tokens[*idx], ","))
+		else if(!strcmp(tokens[*idx], ",")) // 토큰이 , 라면
 			return get_root(cur);
 
-		else if(!strcmp(tokens[*idx], "("))
+		else if(!strcmp(tokens[*idx], "(")) // 토큰이 ( 라면
 		{
 			
-			if(*idx > 0 && !is_operator(tokens[*idx - 1]) && strcmp(tokens[*idx - 1], ",") != 0){
+			if(*idx > 0 && !is_operator(tokens[*idx - 1]) && strcmp(tokens[*idx - 1], ",") != 0){ // 이전 토큰이 연산자가 아니고, ','도 아니라면
 				fstart = true;
 
 				while(1)
 				{
-					*idx += 1;
+					*idx += 1; // 인덱스 증가
 
-					if(!strcmp(tokens[*idx], ")"))
-						break;
+					if(!strcmp(tokens[*idx], ")")) // 토큰이 ) 라면
+						break; // 반복 종료
 					
-					new = make_tree(NULL, tokens, idx, parentheses + 1);
+					new = make_tree(NULL, tokens, idx, parentheses + 1); // 재귀 호출
 					
-					if(new != NULL){
+					if(new != NULL){ // 위의 결과가 NULL이 아니라면
 						if(fstart == true){
-							cur->child_head = new;
+							cur->child_head = new; // 새로 만든 트리를 자식노드로 넣음
 							new->parent = cur;
 	
-							fstart = false;
+							fstart = false; // 새 트리 생성 종료
 						}
 						else{
-							cur->next = new;
+							cur->next = new; // 형제 노드에 새 트리 추가
 							new->prev = cur;
 						}
 
-						cur = new;
+						cur = new; // 새로 만든 트리로 이동
 					}
 
-					if(!strcmp(tokens[*idx], ")"))
-						break;
+					if(!strcmp(tokens[*idx], ")")) // 토큰이 ) 라면
+						break; // 반복 종료
 				}
 			}
-			else{
-				*idx += 1;
+			else{ // 이전 토큰이 연산자 이거나 ',' 라면
+				*idx += 1; // 인덱스 증가
 	
-				new = make_tree(NULL, tokens, idx, parentheses + 1);
+				new = make_tree(NULL, tokens, idx, parentheses + 1); // 트리 생성 재귀 호출
 
 				if(cur == NULL)
 					cur = new;
 
-				else if(!strcmp(new->name, cur->name)){
-					if(!strcmp(new->name, "|") || !strcmp(new->name, "||") 
-						|| !strcmp(new->name, "&") || !strcmp(new->name, "&&"))
+				else if(!strcmp(new->name, cur->name)){ // new의 name과 cur의 name이 같다면
+					if(!strcmp(new->name, "|") || !strcmp(new->name, "||")
+						|| !strcmp(new->name, "&") || !strcmp(new->name, "&&"))// 이 노드가 |, ||, &, && 연산자라면
 					{
-						cur = get_last_child(cur);
+						cur = get_last_child(cur); // 제일 끝에 있는 자식노드로 이동
 
-						if(new->child_head != NULL){
-							new = new->child_head;
+						if(new->child_head != NULL){ // 새로운 트리에 자식 노드가 존재한다면
+							new = new->child_head; // 그 자식 노드로 이동
 
+							// 새로 만든 트리에서 root 노드를 제거
 							new->parent->child_head = NULL;
 							new->parent = NULL;
-							new->prev = cur;
+							// 새로 생성된 트리의 앞쪽에 cur를 추가함  
+							new->prev = cur; 
 							cur->next = new;
 						}
 					}
-					else if(!strcmp(new->name, "+") || !strcmp(new->name, "*"))
+					else if(!strcmp(new->name, "+") || !strcmp(new->name, "*")) // 이 노드가 +, * 연산자라면
 					{
 						i = 0;
 
 						while(1)
 						{
-							if(!strcmp(tokens[*idx + i], ""))
+							if(!strcmp(tokens[*idx + i], "")) // 마지막 토큰이라면 break
 								break;
 
-							if(is_operator(tokens[*idx + i]) && strcmp(tokens[*idx + i], ")") != 0)
+							if(is_operator(tokens[*idx + i]) && strcmp(tokens[*idx + i], ")") != 0) // 토큰이 연산자이고, )가 아니라면 break
 								break;
 
-							i++;
+							i++; // 다음 토큰으로 이동
 						}
 						
-						if(get_precedence(tokens[*idx + i]) < get_precedence(new->name))
+						if(get_precedence(tokens[*idx + i]) < get_precedence(new->name)) // 다음 토큰의 우선순위가 new 보다 더 낮다면
 						{
-							cur = get_last_child(cur);
-							cur->next = new;
+							cur = get_last_child(cur); // 현재 노드의 가장 마지막 자식 노드 찾아온다
+							cur->next = new; // 가장 마지막 자식 노드의 다음 형제 노드에 new를 추가
 							new->prev = cur;
-							cur = new;
+							cur = new; // new로 이동
 						}
-						else
+						else //  다음 토큰의 우선순위다 new 보다 더 높다면
 						{
-							cur = get_last_child(cur);
+							cur = get_last_child(cur); // cur의 가장 마지막 자식 노드 찾아온다
 
-							if(new->child_head != NULL){
-								new = new->child_head;
+							if(new->child_head != NULL){ // new에 자식 노드가 있다면
+								new = new->child_head; // new의 루트 노드 제거
 
+								// cur의 맨 마지막 자식 노드로 new 를 넣는다
 								new->parent->child_head = NULL;
 								new->parent = NULL;
 								new->prev = cur;
@@ -687,8 +690,8 @@ node *make_tree(node *root, char (*tokens)[MINLEN], int *idx, int parentheses)
 						}
 					}
 					else{
-						cur = get_last_child(cur);
-						cur->next = new;
+						cur = get_last_child(cur); // cur의 가장 마지막 자식 노드 찾아온다
+						cur->next = new; // cur의 다음 노드에 new를 추가한다
 						new->prev = cur;
 						cur = new;
 					}
@@ -696,146 +699,148 @@ node *make_tree(node *root, char (*tokens)[MINLEN], int *idx, int parentheses)
 	
 				else
 				{
-					cur = get_last_child(cur);
+					cur = get_last_child(cur); // cur의 가장 마지막 자식 노드 찾아온다
 
-					cur->next = new;
+					cur->next = new; // cur의 다음 노드에 new를 추가한다
 					new->prev = cur;
 	
 					cur = new;
 				}
 			}
 		}
-		else if(is_operator(tokens[*idx]))
+		else if(is_operator(tokens[*idx])) // 토큰이 연산자라면
 		{
 			if(!strcmp(tokens[*idx], "||") || !strcmp(tokens[*idx], "&&")
 					|| !strcmp(tokens[*idx], "|") || !strcmp(tokens[*idx], "&") 
-					|| !strcmp(tokens[*idx], "+") || !strcmp(tokens[*idx], "*"))
+					|| !strcmp(tokens[*idx], "+") || !strcmp(tokens[*idx], "*")) // 토큰이 ||, &&, |, &, +, * 연산자라면
 			{
-				if(is_operator(cur->name) == true && !strcmp(cur->name, tokens[*idx]))
+				if(is_operator(cur->name) == true && !strcmp(cur->name, tokens[*idx])) // cur가 연산자이고, 현재  토큰과 동일하다면
 					operator = cur;
 		
 				else
 				{
-					new = create_node(tokens[*idx], parentheses);
-					operator = get_most_high_precedence_node(cur, new);
+					new = create_node(tokens[*idx], parentheses); // 새로운 노드 생성
+					operator = get_most_high_precedence_node(cur, new); // 가장 우선순위가 높은 연산자를 찾는다
 
-					if(operator->parent == NULL && operator->prev == NULL){
+					if(operator->parent == NULL && operator->prev == NULL){ // 가장 우선순위가 높은 연산자 노드가 부모가 없고, 앞에 다른 형제도 없다면
 
-						if(get_precedence(operator->name) < get_precedence(new->name)){
-							cur = insert_node(operator, new);
+						if(get_precedence(operator->name) < get_precedence(new->name)){ // 새로 만든 트리의 연산자 우선순위가 더 높다면
+							cur = insert_node(operator, new); // operator 노드 자리에 new를 삽입
 						}
 
-						else if(get_precedence(operator->name) > get_precedence(new->name))
+						else if(get_precedence(operator->name) > get_precedence(new->name)) // operator 노드의 우선순위가 더 높다면
 						{
-							if(operator->child_head != NULL){
-								operator = get_last_child(operator);
-								cur = insert_node(operator, new);
+							if(operator->child_head != NULL){ // operator 노드가 자식 노드를 갖고 있다면
+								operator = get_last_child(operator); // 가장 마지막 자식 노드를 구한다
+								cur = insert_node(operator, new); // 가장 마지막 자식 노드 자리에 new를 삽입
 							}
 						}
 						else
 						{
-							operator = cur;
+							operator = cur; 
 	
 							while(1)
 							{
-								if(is_operator(operator->name) == true && !strcmp(operator->name, tokens[*idx]))
-									break;
+								if(is_operator(operator->name) == true && !strcmp(operator->name, tokens[*idx])) // operator가 연산자이고, 현재 토큰과 같다면
+									break; // 반복 종료
 						
-								if(operator->prev != NULL)
-									operator = operator->prev;
-								else
-									break;
+								if(operator->prev != NULL) // operator 앞에 다른 형제 노드가 있다면
+									operator = operator->prev; // 앞쪽 형제 노드로 이동
+								else // 앞에 다른 형제 노드가 없다면
+									break; // 반복 종료
 							}
 
-							if(strcmp(operator->name, tokens[*idx]) != 0)
-								operator = operator->parent;
+							if(strcmp(operator->name, tokens[*idx]) != 0) // operator의 토큰과 일치하지 않는다면
+								operator = operator->parent; // operator의 부모 노드로 이동
 
-							if(operator != NULL){
-								if(!strcmp(operator->name, tokens[*idx]))
+							if(operator != NULL){ // operator가 NULL이 아니라면
+								if(!strcmp(operator->name, tokens[*idx])) // operator의 토큰과 일치한다면
 									cur = operator;
 							}
 						}
 					}
 
 					else
-						cur = insert_node(operator, new);
+						cur = insert_node(operator, new); // operator 위치에 새로운 노드 삽입
 				}
 
 			}
 			else
 			{
-				new = create_node(tokens[*idx], parentheses);
+				new = create_node(tokens[*idx], parentheses); // 새로운 노드 생성
 
 				if(cur == NULL)
 					cur = new;
 
 				else
 				{
-					operator = get_most_high_precedence_node(cur, new);
+					operator = get_most_high_precedence_node(cur, new); // 가장 우선순위가 높은 연산자를 찾는다
 
-					if(operator->parentheses > new->parentheses)
-						cur = insert_node(operator, new);
+					if(operator->parentheses > new->parentheses) // 
+						cur = insert_node(operator, new); // operator자리에 새로운 노드 삽입
 
-					else if(operator->parent == NULL && operator->prev ==  NULL){
+					else if(operator->parent == NULL && operator->prev ==  NULL){ // operator가 루트노드이면
 					
-						if(get_precedence(operator->name) > get_precedence(new->name))
+						if(get_precedence(operator->name) > get_precedence(new->name)) // operator가 new보다 연산자 우선순위가 높으면
 						{
-							if(operator->child_head != NULL){
+							if(operator->child_head != NULL){ // operator에 자식 노드가 있다면
 	
-								operator = get_last_child(operator);
-								cur = insert_node(operator, new);
+								operator = get_last_child(operator); // operator의 마지막 자식 노드를 구한다
+								cur = insert_node(operator, new); // 마지막 자식노드 위치에 새 노드를 삽입
 							}
 						}
 					
 						else	
-							cur = insert_node(operator, new);
+							cur = insert_node(operator, new); // operator자리에 새 노드를 삽입
 					}
 	
 					else
-						cur = insert_node(operator, new);
+						cur = insert_node(operator, new); // operator자리에 새 노드를 삽입
 				}
 			}
 		}
 		else 
 		{
-			new = create_node(tokens[*idx], parentheses);
+			new = create_node(tokens[*idx], parentheses); // 새로운 노드 생성
 
 			if(cur == NULL)
 				cur = new;
 
-			else if(cur->child_head == NULL){
-				cur->child_head = new;
+			else if(cur->child_head == NULL){ // cur 노드에 자식 노드가 없다면
+				cur->child_head = new; // new를 자식 노드로 넣는다
 				new->parent = cur;
 
-				cur = new;
+				cur = new; // 새 노드로 이동
 			}
 			else{
 
-				cur = get_last_child(cur);
+				cur = get_last_child(cur); // cur의 마지막 자식 노드로 이동
 
-				cur->next = new;
+				cur->next = new; // cur의 마지막 자식 노드의 형제 노드로 새 노드를 넣는다
 				new->prev = cur;
 
-				cur = new;
+				cur = new; // 새 노드로 이동
 			}
 		}
 
-		*idx += 1;
+		*idx += 1; // 인덱스 증가시킴
 	}
 
-	return get_root(cur);
+	return get_root(cur); // 트리의 루트노드 구해서 리턴
 }
 
-node *change_sibling(node *parent)
+node *change_sibling(node *parent) // 전달인자로 받은 노드의 자식 노드들이 저장된 순서를 바꾸는 함수
 {
 	node *tmp;
 	
 	tmp = parent->child_head;
 
+	// 두번째 자식 노드를 첫번째 자식 노드 위치로 옮김
 	parent->child_head = parent->child_head->next;
 	parent->child_head->parent = parent;
 	parent->child_head->prev = NULL;
 
+	// 첫번째 자식 노드를 두번째 자식 노드 위치로 옮김
 	parent->child_head->next = tmp;
 	parent->child_head->next->prev = parent->child_head;
 	parent->child_head->next->next = NULL;
@@ -844,62 +849,63 @@ node *change_sibling(node *parent)
 	return parent;
 }
 
-node *create_node(char *name, int parentheses)
+node *create_node(char *name, int parentheses) // 새로운 노드를 생성하는 함수
 {
 	node *new;
 
-	new = (node *)malloc(sizeof(node));
-	new->name = (char *)malloc(sizeof(char) * (strlen(name) + 1));
-	strcpy(new->name, name);
+	new = (node *)malloc(sizeof(node)); // node 동적 할당
+	new->name = (char *)malloc(sizeof(char) * (strlen(name) + 1)); // node의 name 동적할당
+	strcpy(new->name, name); // node에 name을 넣는다
 
+	// node의 내용 초기화
 	new->parentheses = parentheses;
 	new->parent = NULL;
 	new->child_head = NULL;
 	new->prev = NULL;
 	new->next = NULL;
 
-	return new;
+	return new; // 생성된 노드 리턴
 }
 
-int get_precedence(char *op)
+int get_precedence(char *op) // 연산자의 우선순위를 구하는 함수
 {
 	int i;
 
 	for(i = 2; i < OPERATOR_CNT; i++){
-		if(!strcmp(operators[i].operator, op))
-			return operators[i].precedence;
+		if(!strcmp(operators[i].operator, op)) // 전달인자와 같은 연산자를 찾는다
+			return operators[i].precedence; // 해당 연산자의 우선순위를 리턴한다
 	}
-	return false;
+	return false; // 전달인자가 연산자가 아니었다면 false를 리턴한다
 }
 
-int is_operator(char *op)
+int is_operator(char *op) // 전달인자로 받은 문자가 연산자인지 확인하는 함수
 {
 	int i;
 
 	for(i = 0; i < OPERATOR_CNT; i++)
 	{
-		if(operators[i].operator == NULL)
-			break;
-		if(!strcmp(operators[i].operator, op)){
-			return true;
+		if(operators[i].operator == NULL) // 모든 문자열들과 비교했다면
+			break; // 반복 중지
+		if(!strcmp(operators[i].operator, op)){	// 전달인자와 일치하는 연산자가 있다면
+			return true; // true 리턴
 		}
 	}
 
-	return false;
+	return false;// 전달인자와 일치하는 연산자가 없었다면 false 리턴
 }
 
 void print(node *cur)
 {
-	if(cur->child_head != NULL){
-		print(cur->child_head);
+	if(cur->child_head != NULL){ // 자식노드가 있다면
+		print(cur->child_head); // 자식노드 출력
 		printf("\n");
 	}
 
-	if(cur->next != NULL){
-		print(cur->next);
+	if(cur->next != NULL){ // 형제노드가 있다면
+		print(cur->next); // 형제노드 출력
 		printf("\t");
 	}
-	printf("%s", cur->name);
+	printf("%s", cur->name); // 
 }
 
 node *get_operator(node *cur)
@@ -907,50 +913,50 @@ node *get_operator(node *cur)
 	if(cur == NULL)
 		return cur;
 
-	if(cur->prev != NULL)
-		while(cur->prev != NULL)
-			cur = cur->prev;
+	if(cur->prev != NULL) // 앞쪽에 형제노드가 있다면
+		while(cur->prev != NULL) // 더이상 앞에 형제노드가 없을 때까지
+			cur = cur->prev; // 앞으로 이동
 
-	return cur->parent;
+	return cur->parent; // 부모노드(연산자) 리턴
 }
 
-node *get_root(node *cur)
+node *get_root(node *cur) // 트리의 루트를 찾아 리턴하는 함수
 {
 	if(cur == NULL)
 		return cur;
 
-	while(cur->prev != NULL)
+	while(cur->prev != NULL) // 제일 앞쪽 노드로 이동 (제일 앞 노드에서 부모에게 갈 수 있음)
 		cur = cur->prev;
 
-	if(cur->parent != NULL)
+	if(cur->parent != NULL) // 부모 노드로 이동
 		cur = get_root(cur->parent);
 
-	return cur;
+	return cur; // 루트노드 리턴
 }
 
-node *get_high_precedence_node(node *cur, node *new)
+node *get_high_precedence_node(node *cur, node *new) // 더 우선순위가 높은 노드를 찾는 함수
 {
 	if(is_operator(cur->name))
-		if(get_precedence(cur->name) < get_precedence(new->name))
-			return cur;
+		if(get_precedence(cur->name) < get_precedence(new->name)) // cur의 연산자가 우선순위가 더 높다면
+			return cur; // cur 리턴
 
-	if(cur->prev != NULL){
-		while(cur->prev != NULL){
+	if(cur->prev != NULL){ // cur 앞에 형제노드가 있다면
+		while(cur->prev != NULL){ // 맨 앞의 형제 노드까지 이동
 			cur = cur->prev;
 			
-			return get_high_precedence_node(cur, new);
+			return get_high_precedence_node(cur, new); // cur와 비교하며 재귀호출
 		}
 
 
-		if(cur->parent != NULL)
-			return get_high_precedence_node(cur->parent, new);
+		if(cur->parent != NULL) // 부모노드가 있다면
+			return get_high_precedence_node(cur->parent, new); // 부모노드와 비교하며 재귀호출
 	}
 
-	if(cur->parent == NULL)
-		return cur;
+	if(cur->parent == NULL) // 루트 노드라면
+		return cur; // cur 리턴
 }
 
-node *get_most_high_precedence_node(node *cur, node *new)
+node *get_most_high_precedence_node(node *cur, node *new) // 가장 우선순위가 높은 연산자를 구하는 함수
 {
 	node *operator = get_high_precedence_node(cur, new);
 	node *saved_operator = operator;
@@ -960,67 +966,70 @@ node *get_most_high_precedence_node(node *cur, node *new)
 		if(saved_operator->parent == NULL)
 			break;
 
-		if(saved_operator->prev != NULL)
-			operator = get_high_precedence_node(saved_operator->prev, new);
+		if(saved_operator->prev != NULL) // 저장해둔 노드의 앞에 다른 형제노드들이 있다면
+			operator = get_high_precedence_node(saved_operator->prev, new); // 앞쪽의 형제노드와 새 노드 중 우선순위가 높은 노드 저장
 
-		else if(saved_operator->parent != NULL)
-			operator = get_high_precedence_node(saved_operator->parent, new);
+		else if(saved_operator->parent != NULL) // 저장해둔 노드에게 부모노드가 있다면
+			operator = get_high_precedence_node(saved_operator->parent, new); // 부모노드와 새 노드 중 우선순위가 높은 노드 저장
 
 		saved_operator = operator;
 	}
 	
-	return saved_operator;
+	return saved_operator; // 가장 연산자 우선순위 높은 노드 리턴
 }
 
-node *insert_node(node *old, node *new)
+node *insert_node(node *old, node *new) // 새로운 노드를 old의 자리에 삽입하는 함수
 {
-	if(old->prev != NULL){
+	if(old->prev != NULL){ // old노드의 앞쪽에 다른 형제노드가 있다면
+		// new 노드의 앞쪽에 그 형제노드를 넣는다
 		new->prev = old->prev;
+		// 그 형제노드의 뒤쪽에 new 노드를 넣는다
 		old->prev->next = new;
 		old->prev = NULL;
 	}
 
-	new->child_head = old;
-	old->parent = new;
+	new->child_head = old;// old노드를 new 노드의 자식으로 넣는다
+	old->parent = new; // old의 부모 노드의 자식노드를 old노드에서 new 노드로 바꾼다
 
 	return new;
 }
 
-node *get_last_child(node *cur)
+node *get_last_child(node *cur) // 제일 끝의 자식 노드 찾는 함수
 {
-	if(cur->child_head != NULL)
-		cur = cur->child_head;
+	if(cur->child_head != NULL) // 자식노드가 있다면
+		cur = cur->child_head; // 자식노드로 이동
 
-	while(cur->next != NULL)
-		cur = cur->next;
+	while(cur->next != NULL) // 다음 형제노드가 있다면
+		cur = cur->next; // 다음 형제노드로 이동
 
-	return cur;
+	return cur; // 찾은 노드 리턴
 }
 
-int get_sibling_cnt(node *cur)
+int get_sibling_cnt(node *cur) // 형제 노드의 개수를 세는 함수
 {
 	int i = 0;
 
-	while(cur->prev != NULL)
+	while(cur->prev != NULL) // 제일 앞쪽 형제 노드로 이동
 		cur = cur->prev;
 
-	while(cur->next != NULL){
+	while(cur->next != NULL){ // 뒤쪽으로 이동하며 형제 노드의 수를 센다
 		cur = cur->next;
 		i++;
 	}
 
-	return i;
+	return i; // 형제 노드의 수 리턴
 }
 
-void free_node(node *cur)
+void free_node(node *cur) // 인자로 받은 노드 삭제하는 함수 (자식 노드, 뒤에 있는 형제노드들도 삭제)
 {
-	if(cur->child_head != NULL)
-		free_node(cur->child_head);
+	if(cur->child_head != NULL) // 자식 노드가 있었다면
+		free_node(cur->child_head); // 자식 노드에 대하여 free_node() 호출
 
-	if(cur->next != NULL)
-		free_node(cur->next);
+	if(cur->next != NULL) // 뒤에 다른 형제노드가 있다면
+		free_node(cur->next); // 뒤에있던 형제노드들에 대하여 free_node() 호출
 
 	if(cur != NULL){
+		// 현재 노드를 free한다
 		cur->prev = NULL;
 		cur->next = NULL;
 		cur->parent = NULL;
@@ -1078,42 +1087,42 @@ int is_typeStatement(char *str) // type이 맨 앞에 있는 구문(선언문?)�
 
 }
 
-int find_typeSpecifier(char tokens[TOKEN_CNT][MINLEN]) 
+int find_typeSpecifier(char tokens[TOKEN_CNT][MINLEN]) // 토큰들 중에서 형식 지정자를 찾는 함수
 {
 	int i, j;
 
-	for(i = 0; i < TOKEN_CNT; i++)
+	for(i = 0; i < TOKEN_CNT; i++) // 모든 토큰들 확인
 	{
-		for(j = 0; j < DATATYPE_SIZE; j++)
+		for(j = 0; j < DATATYPE_SIZE; j++) // 모든 자료형 확인
 		{
-			if(strstr(tokens[i], datatype[j]) != NULL && i > 0)
+			if(strstr(tokens[i], datatype[j]) != NULL && i > 0) // 토큰에 datatype이 포함되어 있다면
 			{
-				if(!strcmp(tokens[i - 1], "(") && !strcmp(tokens[i + 1], ")") 
-						&& (tokens[i + 2][0] == '&' || tokens[i + 2][0] == '*' 
+				if(!strcmp(tokens[i - 1], "(") && !strcmp(tokens[i + 1], ")") // 앞 토큰이 ( 이고, 뒤 토큰이 ) 이고
+						&& (tokens[i + 2][0] == '&' || tokens[i + 2][0] == '*'
 							|| tokens[i + 2][0] == ')' || tokens[i + 2][0] == '(' 
-							|| tokens[i + 2][0] == '-' || tokens[i + 2][0] == '+' 
-							|| is_character(tokens[i + 2][0])))  
-					return i;
+							|| tokens[i + 2][0] == '-' || tokens[i + 2][0] == '+'
+							|| is_character(tokens[i + 2][0]))) // 이 토큰 뒤에 있는 ) 바로 뒤에 &,*,),(,-,+,알파벳이나 숫자가 있으면
+					return i; // 토큰의 인덱스 리턴
 			}
 		}
 	}
-	return -1;
+	return -1; // 못찾았으면 -1 리턴
 }
 
-int find_typeSpecifier2(char tokens[TOKEN_CNT][MINLEN]) 
+int find_typeSpecifier2(char tokens[TOKEN_CNT][MINLEN]) // 토큰에서 struct 형식 지정자를 찾는 함수
 {
     int i, j;
 
    
-    for(i = 0; i < TOKEN_CNT; i++)
+    for(i = 0; i < TOKEN_CNT; i++) // 모든 토큰들 확인
     {
-        for(j = 0; j < DATATYPE_SIZE; j++)
+        for(j = 0; j < DATATYPE_SIZE; j++) // 모든 자료형 확인
         {
-            if(!strcmp(tokens[i], "struct") && (i+1) <= TOKEN_CNT && is_character(tokens[i + 1][strlen(tokens[i + 1]) - 1]))  
-                    return i;
+            if(!strcmp(tokens[i], "struct") && (i+1) <= TOKEN_CNT && is_character(tokens[i + 1][strlen(tokens[i + 1]) - 1])) // 토큰이 struct이고, 다음 토큰의 마지막 문자가 알파벳이나 숫자라면
+                    return i; // 토큰의 인덱스 리턴
         }
     }
-    return -1;
+    return -1; // 찾지 못했다면 -1 리턴
 }
 
 int all_star(char *str) // 이 문자열이 전부 '*' 문자로 이루어졌는지 확인하는 함수
@@ -1131,13 +1140,13 @@ int all_star(char *str) // 이 문자열이 전부 '*' 문자로 이루어졌는
 
 }
 
-int all_character(char *str)
+int all_character(char *str) // 인자로 받은 문자열이 전부 숫자나 영어 알파벳으로만 이루어져 있는지 확인하는 함수
 {
 	int i;
 
 	for(i = 0; i < strlen(str); i++)
-		if(is_character(str[i]))
-			return 1;
+		if(is_character(str[i])) // 문자가 숫자나 알파벳으로 이루어져 있다면
+			return 1; // 바로 1 리턴 -> ???
 	return 0;
 	
 }
@@ -1146,98 +1155,100 @@ int reset_tokens(int start, char tokens[TOKEN_CNT][MINLEN])
 {
 	int i;
 	int j = start - 1;
-	int lcount = 0, rcount = 0;
+	int lcount = 0, rcount = 0; // lcount : start 토큰 왼쪽의 여는 괄호 개수, rcount : 오른쪽의 닫는 괄호 개수
 	int sub_lcount = 0, sub_rcount = 0;
 
-	if(start > -1){
-		if(!strcmp(tokens[start], "struct")) {		
-			strcat(tokens[start], " ");
-			strcat(tokens[start], tokens[start+1]);	     
+	if(start > -1){ // start가 음수가 아니라면
+		if(!strcmp(tokens[start], "struct")) { // start 토큰이 struct 라면
+			strcat(tokens[start], " "); // start 토큰(형식지정자) 뒤에 공백 추가
+			strcat(tokens[start], tokens[start+1]);	// start 토큰 뒤에 start + 1 토큰 덧붙임
 
-			for(i = start + 1; i < TOKEN_CNT - 1; i++){
+			for(i = start + 1; i < TOKEN_CNT - 1; i++){ // start 토큰(형식지정자) 다음 토큰부터 마지막 토큰까지
+				// 토큰들 앞으로 한칸씩 이동
 				strcpy(tokens[i], tokens[i + 1]);
 				memset(tokens[i + 1], 0, sizeof(tokens[0]));
 			}
 		}
 
-		else if(!strcmp(tokens[start], "unsigned") && strcmp(tokens[start+1], ")") != 0) {		
-			strcat(tokens[start], " ");
-			strcat(tokens[start], tokens[start + 1]);	     
-			strcat(tokens[start], tokens[start + 2]);
+		else if(!strcmp(tokens[start], "unsigned") && strcmp(tokens[start+1], ")") != 0) { // start 토큰이 unsigned이고, 그 다음 토큰이 가 아니라면
+			strcat(tokens[start], " "); // start 토큰 뒤에 형식 지정자 추가
+			strcat(tokens[start], tokens[start + 1]); // 다음 토큰 start 토큰에 덧붙임
+			strcat(tokens[start], tokens[start + 2]); // 다다음 토큰 strat 토큰에 덧붙임
 
-			for(i = start + 1; i < TOKEN_CNT - 1; i++){
+			for(i = start + 1; i < TOKEN_CNT - 1; i++){ // start 다음 토큰부터 마지막 토큰까지 ---
+				// 토큰들 앞으로 한칸씩 이동
 				strcpy(tokens[i], tokens[i + 1]);
 				memset(tokens[i + 1], 0, sizeof(tokens[0]));
 			}
 		}
 
-     		j = start + 1;           
-        	while(!strcmp(tokens[j], ")")){
-                	rcount ++;
-                	if(j==TOKEN_CNT)
-                        	break;
-                	j++;
+     		j = start + 1; // j에 start 다음 토큰의 인덱스를 넣는다
+        	while(!strcmp(tokens[j], ")")){ // j번째 토큰이 ) 라면
+                	rcount ++; // 오른쪽 ) 괄호 개수 + 1
+                	if(j==TOKEN_CNT) // 토큰 끝까지 전부 확인했다면
+                        	break; // 반복 종료
+                	j++; // 다음 토큰으로
         	}
 	
-		j = start - 1;
-		while(!strcmp(tokens[j], "(")){
-        	        lcount ++;
-                	if(j == 0)
-                        	break;
-               		j--;
+		j = start - 1; // j에 start 이전 토큰의 인덱스를 넣는다
+		while(!strcmp(tokens[j], "(")){ // j번째 토큰이 ( 라면
+        	        lcount ++;// 왼쪽 ( 괄호 개수 + 1
+                	if(j == 0) // 모든 토큰 확인했다면
+                        	break; // 반복 종료
+               		j--; // 다음 토큰으로
 		}
-		if( (j!=0 && is_character(tokens[j][strlen(tokens[j])-1]) ) || j==0)
-			lcount = rcount;
+		if( (j!=0 && is_character(tokens[j][strlen(tokens[j])-1]) ) || j==0) // j가 첫번째 토큰이 아니고 마지막 문자가 알파벳이나 숫자이거나 또는 첫번째 토큰이라면
+			lcount = rcount; // lcount에 rcount를 넣는다
 
-		if(lcount != rcount )
+		if(lcount != rcount ) // 괄호의 짝이 맞지 않는다면
 			return false;
 
-		if( (start - lcount) >0 && !strcmp(tokens[start - lcount - 1], "sizeof")){
-			return true; 
+		if( (start - lcount) >0 && !strcmp(tokens[start - lcount - 1], "sizeof")){ // start 토큰 왼쪽에 ( 가 아닌 문자가 있고, 그 (들 바로 앞의 토큰이 sizeof라면
+			return true; // true 리턴
 		}
 		
-		else if((!strcmp(tokens[start], "unsigned") || !strcmp(tokens[start], "struct")) && strcmp(tokens[start+1], ")")) {		
-			strcat(tokens[start - lcount], tokens[start]);
-			strcat(tokens[start - lcount], tokens[start + 1]);
-			strcpy(tokens[start - lcount + 1], tokens[start + rcount]);
+		else if((!strcmp(tokens[start], "unsigned") || !strcmp(tokens[start], "struct")) && strcmp(tokens[start+1], ")")) { //start 뒤의 토큰이 )이고, start토큰이 unsigned 또는 struct이면
+			strcat(tokens[start - lcount], tokens[start]); // start - lcount 번째 토큰에 start 토큰을 덧붙임 ('(' 괄호들 삭제)
+			strcat(tokens[start - lcount], tokens[start + 1]); // start - lcount 번째 토큰에 start + 1 번째 토큰을 덧붙임
+			strcpy(tokens[start - lcount + 1], tokens[start + rcount]); // start - lount 번째 토큰의 다음 토큰에 start + rcount번째 토큰을 덧붙임
 		 
 			for(int i = start - lcount + 1; i < TOKEN_CNT - lcount -rcount; i++) {
-				strcpy(tokens[i], tokens[i + lcount + rcount]);
-				memset(tokens[i + lcount + rcount], 0, sizeof(tokens[0]));
+				strcpy(tokens[i], tokens[i + lcount + rcount]); // i + lcount + rcount 번째 토큰부터 제일 끝에 있는 토큰까지 i번째 토큰으로 앞당긴다
+				memset(tokens[i + lcount + rcount], 0, sizeof(tokens[0])); // 앞으로 당겨온 토큰들 0초기화
 			}
 
 
 		}
  		else{
-			if(tokens[start + 2][0] == '('){
+			if(tokens[start + 2][0] == '('){ // start 다다음 토큰이 ( 라면
 				j = start + 2;
-				while(!strcmp(tokens[j], "(")){
-					sub_lcount++;
+				while(!strcmp(tokens[j], "(")){ // (가 아닌 토큰이 나올때까지 반복한다
+					sub_lcount++; // sub_lcount 하나씩 증가시킨다
 					j++;
 				} 	
-				if(!strcmp(tokens[j + 1],")")){
+				if(!strcmp(tokens[j + 1],")")){ // j + 1번째 토큰이 )라면
 					j = j + 1;
-					while(!strcmp(tokens[j], ")")){
-						sub_rcount++;
+					while(!strcmp(tokens[j], ")")){ // )가 아닌 토큰이 나올때까지 반복한더
+						sub_rcount++; // sub_rcount를 증가시킨다
 						j++;
 					}
 				}
 				else 
 					return false;
 
-				if(sub_lcount != sub_rcount)
+				if(sub_lcount != sub_rcount) // sub_lcount와 sub_rcount가 다르다면
 					return false;
 				
-				strcpy(tokens[start + 2], tokens[start + 2 + sub_lcount]);	
+				strcpy(tokens[start + 2], tokens[start + 2 + sub_lcount]); // 토큰 앞으로 당겨온다
 				for(int i = start + 3; i<TOKEN_CNT; i++)
-					memset(tokens[i], 0, sizeof(tokens[0]));
+					memset(tokens[i], 0, sizeof(tokens[0])); // 뒤에 있던 토큰들 0초기화
 
 			}
-			strcat(tokens[start - lcount], tokens[start]);
-			strcat(tokens[start - lcount], tokens[start + 1]);
-			strcat(tokens[start - lcount], tokens[start + rcount + 1]);
+			strcat(tokens[start - lcount], tokens[start]); // 왼쪽에 있던 괄호 앞 토큰에 start 토큰 덧붙임
+			strcat(tokens[start - lcount], tokens[start + 1]); // start 토큰의 바로 뒤에 있던 토큰 덧붙임
+			strcat(tokens[start - lcount], tokens[start + rcount + 1]); // 오른쪽에 있던 괄호 뒤의 토큰 덧붙임
 		 
-			for(int i = start - lcount + 1; i < TOKEN_CNT - lcount -rcount -1; i++) {
+			for(int i = start - lcount + 1; i < TOKEN_CNT - lcount -rcount -1; i++) { // start 토큰 주변에 있던 괄호들을 없앤다
 				strcpy(tokens[i], tokens[i + lcount + rcount +1]);
 				memset(tokens[i + lcount + rcount + 1], 0, sizeof(tokens[0]));
 
@@ -1280,45 +1291,45 @@ char *ltrim(char *_str)
 	return _str;
 }
 
-char* remove_extraspace(char *str)
+char* remove_extraspace(char *str) // 의미없는 공백 지우는 함수
 {
 	int i;
-	char *str2 = (char*)malloc(sizeof(char) * BUFLEN);
+	char *str2 = (char*)malloc(sizeof(char) * BUFLEN); // 결과 저장할 문자열 동적할당
 	char *start, *end;
 	char temp[BUFLEN] = "";
 	int position;
 
-	if(strstr(str,"include<")!=NULL){
-		start = str;
-		end = strpbrk(str, "<");
+	if(strstr(str,"include<")!=NULL){ // 전달인자로 받은 문자열에 "include<"가 포함되어 있다면
+		start = str; // 시작주소 설정
+		end = strpbrk(str, "<"); // 끝주소 설정
 		position = end - start;
 	
-		strncat(temp, str, position);
-		strncat(temp, " ", 1);
-		strncat(temp, str + position, strlen(str) - position + 1);
+		strncat(temp, str, position); // str에서  position 길이만큼 temp에 갖다붙임
+		strncat(temp, " ", 1); // temp뒤에 공백 추가
+		strncat(temp, str + position, strlen(str) - position + 1); // temp 뒤에 str의 나머지 부분 갖다 붙임
 
-		str = temp;		
+		str = temp; // str을 temp로 바꿈
 	}
 	
-	for(i = 0; i < strlen(str); i++)
+	for(i = 0; i < strlen(str); i++) // 문자열 내 모든 문자 확인
 	{
-		if(str[i] ==' ')
+		if(str[i] ==' ') // 공백 문자라면
 		{
-			if(i == 0 && str[0] ==' ')
-				while(str[i + 1] == ' ')
-					i++;	
+			if(i == 0 && str[0] ==' ') // 첫번째 문자가 공백문자라면
+				while(str[i + 1] == ' ') // 공백문자가 아닌 문자가 나올때까지
+					i++; // 다음 문자로 이동
 			else{
-				if(i > 0 && str[i - 1] != ' ')
-					str2[strlen(str2)] = str[i];
-				while(str[i + 1] == ' ')
-					i++;
+				if(i > 0 && str[i - 1] != ' ') // 앞문자가 공백문자가 아니라면
+					str2[strlen(str2)] = str[i]; // str2에 넣는다
+				while(str[i + 1] == ' ')// 공백문자가 아닌 문자가 나올때까지
+					i++; // 다음 문자로 이동
 			} 
 		}
 		else
-			str2[strlen(str2)] = str[i];
+			str2[strlen(str2)] = str[i]; // str2에 넣는다
 	}
 
-	return str2;
+	return str2; // 쓸데없는 공백들 제거한 새로운 문자열 return
 }
 
 
@@ -1361,13 +1372,13 @@ int check_brackets(char *str) // 괄호가 짝을 맞춰 제대로 있는지 검
 		return 1; // 괄호 개수가 일치하면 1 리턴
 }
 
-int get_token_cnt(char tokens[TOKEN_CNT][MINLEN])
+int get_token_cnt(char tokens[TOKEN_CNT][MINLEN]) // 토큰의 총 개수 리턴하는 함수
 {
 	int i;
 	
 	for(i = 0; i < TOKEN_CNT; i++)
-		if(!strcmp(tokens[i], ""))
-			break;
+		if(!strcmp(tokens[i], "")) // 토큰이 nullstring이라면
+			break; // 반복 종료
 
-	return i;
+	return i; // 반복한 횟수 리턴
 }

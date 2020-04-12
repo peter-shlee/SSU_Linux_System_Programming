@@ -11,10 +11,10 @@
 	#define BUFLEN 1024
 #endif
 
-#define OPERATOR_CNT 24
-#define DATATYPE_SIZE 35
+#define OPERATOR_CNT 24 // 연산자 개수
+#define DATATYPE_SIZE 35 // 데이터 타입 개수
 #define MINLEN 64
-#define TOKEN_CNT 50
+#define TOKEN_CNT 50 // 토큰 최대 개수
 
 typedef struct node{
 	int parentheses;
