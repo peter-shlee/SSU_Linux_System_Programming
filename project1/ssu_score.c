@@ -22,8 +22,7 @@ char ansDir[BUFLEN]; // 정답 파일들이 들어있는 디렉토리
 char errorDir[BUFLEN];
 char threadFiles[ARGNUM][FILELEN];
 // char cIDs[ARGNUM][FILELEN];
-char iIDs[ARGNUM][FILELEN];
-char mNums[ARGNUM][FILELEN];
+char iIDs[ARGNUM][FILELEN]; // -i 옵션에 사용할 학번
 
 // option flags
 int eOption = false;
@@ -34,9 +33,6 @@ int tOption = false;
 /////////////////////////////////////////////////////////////////////////////////////////
 int mOption = false;
 int iOption = false;
-
-void do_mOption();
-void do_iOption(char (*ids)[FILELEN]);// 헤더파일에 추가
 
 void ssu_score(int argc, char *argv[])
 {
@@ -103,8 +99,7 @@ void ssu_score(int argc, char *argv[])
 	return;
 }
 
-// 프로그램 실행 시 전달된 옵션을 체크하는 함수
-int check_option(int argc, char *argv[])
+int check_option(int argc, char *argv[]) // 프로그램 실행 시 전달된 옵션을 체크하는 함수
 {
 	int i, j; // 반복문에서 사용하는 인덱스
 	int c; // 옵션으로 전달된 알파벳
@@ -142,20 +137,6 @@ int check_option(int argc, char *argv[])
 				break;
 			case 'm':
 				mOption = true;
-//				i = optind; // 프로그램 전달인자 인덱스
-//				j = 0; // 옵션에 전달된 가변인자 인덱스
-//
-//				while(i < argc && argv[i][0] != '-'){ // i 옵션에 전달된 가변인자들 확인을 위한 반복문
-//
-//					if(j >= ARGNUM) // 가변인자를 받는 옵션이므로 가변인자의 개수가 최대 개수를 넘지 않았는지 확인
-//						printf("Maximum Number of Argument Exceeded.  :: %s\n", argv[i]);
-//					else
-//						strcpy(mNums[j], argv[i]); // 옵션에 전달된 인자를 iIDs에 복사해 놓는다
-//					i++; 
-//					j++;
-//				}
-//
-//				break;
 			case 'i':
 				iOption = true;
 				i = optind; // 프로그램 전달인자 인덱스
@@ -236,37 +217,39 @@ void do_cOption(char (*ids)[FILELEN]) // 선택한 학번의 점수를 출력하
 	fclose(fp);
 }
 
-void do_iOption(char (*ids)[FILELEN])
+void do_iOption(char (*ids)[FILELEN]) // i옵션 수행하는 함수
 {
 	FILE *fp;
 	char tmp[BUFLEN];
 	char numbers[BUFLEN];
 	int i = 0;
 	char *p, *saved, *np;
-	int isFirstWrongAnswer = true;
+	int isFirstWrongAnswer = true; // 두번째 오답부터는 앞에 콤마를 찍기 위해 사용하는 플래그
 
 
-	if((fp = fopen("score.csv", "r")) == NULL){
+	if((fp = fopen("score.csv", "r")) == NULL){ // 점수파일 오픈
 		fprintf(stderr, "file open error for score.csv\n");
 		return;
 	}
 
-	fscanf(fp, "%s\n", numbers);
+	fscanf(fp, "%s\n", numbers); // 파일에서 첫번째 줄(문제 번호들) 읽어들임
 
-	while(fscanf(fp, "%s\n", tmp) != EOF)
+	while(fscanf(fp, "%s\n", tmp) != EOF) // 한 학생씩 채점 결과 읽어들임
 	{
 		isFirstWrongAnswer = true;
 		np = numbers;
 		p = strtok(tmp, ",");
 
-		if(!is_exist(ids, tmp))
+		if(!is_exist(ids, tmp)) // i 옵션을 지정한 학생중에 현재 읽어들인 학생이 있다면
 			continue;
 
+		// 틀린 문제들 출력
 		printf("%s's wrong answer : \n", tmp);
 
 		while((p = strtok(NULL, ",")) != NULL) {
 			np = strchr(np, ',') + 1;
-			if (!strcmp(p, "0")) {
+			if (!strcmp(p, "0")) { // 해당 문제를 틀렸다면
+				// 문제번호 출력
 				if(!isFirstWrongAnswer) printf(", ");
 				else isFirstWrongAnswer = false;
 				while(*np != ',') {
@@ -281,7 +264,7 @@ void do_iOption(char (*ids)[FILELEN])
 	fclose(fp);
 }
 
-void do_mOption()
+void do_mOption()// m옵션 수행하는 함수
 {
 	int i;
 	double newScore;
@@ -292,23 +275,24 @@ void do_mOption()
 
 	while(true) {
 		printf("Input question's number to modify >> ");
-		scanf("%s", inputqname);
+		scanf("%s", inputqname); // 수정할 문제 번호 입력받음
 
-		if(!strcmp(inputqname, "no")) break;
+		if(!strcmp(inputqname, "no")) break; // 입력된 문제 번호가 no라면 수정 종료
 
 		i = 0;
 		while(score_table[i].score != 0) {
 			memset(qname, 0, sizeof(qname));
 			memcpy(qname, score_table[i].qname, strlen(score_table[i].qname) - strlen(strrchr(score_table[i].qname, '.'))); //  qname에 확장자 명을 뺀 파일 이름(문제 번호)을 넣음
-			if(strcmp(qname, inputqname)) {
+			if(strcmp(qname, inputqname)) { // 문제 번호가 서로 일치하지 않는다면
 				++i;
 				continue;
 			}
 
+			// 문제 번호가 서로 일치하면
 			printf("Current score : %.2f\n", score_table[i].score);
 			printf("New score : ");
-			scanf("%lf", &newScore);
-			score_table[i].score = newScore;
+			scanf("%lf", &newScore); // 변경할 배점 입력받음
+			score_table[i].score = newScore; // score_table 구조체 배열에 변경된 점수 기록
 
 			break;
 		}
@@ -317,7 +301,7 @@ void do_mOption()
 
 
 	sprintf(filename, "%s", "score_table.csv"); // 점수 테이블 파일이 생성될 경로를 생성해 filename에 저장
-	write_scoreTable(filename);
+	write_scoreTable(filename); // 변경된 score_table 구조체 배열의 내용을 score.csv에 출력
 	printf("do_mOption end\n");
 }
 
@@ -354,7 +338,7 @@ void set_scoreTable(char *ansDir) // 각 문제별 점수를 저장해 놓는 sc
 	}
 }
 
-void read_scoreTable(char *path)
+void read_scoreTable(char *path) // 파일에서 문제의 정보를 읽어와 score_table 구조체 배열에 저장하는 함수
 {
 	FILE *fp;
 	char qname[FILELEN]; // 문제 번호를 임시 저장할 배열
@@ -696,7 +680,7 @@ void write_first_row(int fd) // score.csv의 첫번째 열을 write하는 함수
 	write(fd, "sum\n", 4);
 }
 
-char *get_answer(int fd, char *result)
+char *get_answer(int fd, char *result) // 답안 파일에서 내용을 읽어와 result에 저장하는 함수
 {
 	char c;
 	int idx = 0;
@@ -751,57 +735,57 @@ int score_blank(char *id, char *filename) // 빈칸 문제를 채점하는 함�
 		s_answer[strlen(s_answer) - 1] = '\0'; // 널문자를 넣는다
 	}
 
-	if(!make_tokens(s_answer, tokens)){ // 400줄짜리 함수
+	if(!make_tokens(s_answer, tokens)){ // 학생의 답을 토큰들로 분해, 토큰으로 나누는 과정에서 오답임이 밝혀지면
 		close(fd_std);
-		return false;
+		return false; // false 리턴
 	}
 
 	idx = 0;
-	std_root = make_tree(std_root, tokens, &idx, 0);
+	std_root = make_tree(std_root, tokens, &idx, 0); // 위에서 생성한 토큰들을 트리에 넣는다
 
 	// 답안 디렉터리의 바로 아래에 답안 파일이 있으므로 수정 필요 //////////////////////////////////////////////////////////////////////
 //	sprintf(tmp, "%s/%s/%s", ansDir, qname, filename);
 	sprintf(tmp, "%s/%s", ansDir, filename);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	fd_ans = open(tmp, O_RDONLY);
+	fd_ans = open(tmp, O_RDONLY); // 답안 파일 open
 
 	while(1)
 	{
 		ans_root = NULL;
-		result = true;
+		result = true; // 결과값에 true 넣어놓는다
 
 		for(idx = 0; idx < TOKEN_CNT; idx++)
-			memset(tokens[idx], 0, sizeof(tokens[idx]));
+			memset(tokens[idx], 0, sizeof(tokens[idx])); // 토큰들 배열 0초기화
 
-		strcpy(a_answer, get_answer(fd_ans, a_answer));
+		strcpy(a_answer, get_answer(fd_ans, a_answer)); // 답안 파일에서 답을 읽어와 a_answer에 저장
 
-		if(!strcmp(a_answer, ""))
+		if(!strcmp(a_answer, "")) // a_answer가 null string이면 반복 종료
 			break;
 
-		strcpy(a_answer, ltrim(rtrim(a_answer)));
+		strcpy(a_answer, ltrim(rtrim(a_answer))); // a_answer 앞뒤의 공백 제거
 
-		if(has_semicolon == false){
-			if(a_answer[strlen(a_answer) -1] == ';')
-				continue;
+		if(has_semicolon == false){ // 학생의 답안에 세미콜론이 없었다면
+			if(a_answer[strlen(a_answer) -1] == ';') // 답안에는 세미콜론이 있다면
+				continue; // 다음 답안 확인
 		}
 
-		else if(has_semicolon == true)
+		else if(has_semicolon == true) // 학생의 답안에 세미콜론이 있었다면
 		{
-			if(a_answer[strlen(a_answer) - 1] != ';')
-				continue;
-			else
-				a_answer[strlen(a_answer) - 1] = '\0';
+			if(a_answer[strlen(a_answer) - 1] != ';') // 답안에는 세미콜론이 없다면
+				continue; // 다음 답안 확인
+			else // 세미콜론 있다면
+				a_answer[strlen(a_answer) - 1] = '\0'; // 널문자로 바꿈
 		}
 
-		if(!make_tokens(a_answer, tokens))
-			continue;
+		if(!make_tokens(a_answer, tokens)) // 답안을 토큰으로 나눈다
+			continue; // 토큰으로 나누는 과정에서 잘못됐다면 다음 답안으로 이동
 
 		idx = 0;
-		ans_root = make_tree(ans_root, tokens, &idx, 0);
+		ans_root = make_tree(ans_root, tokens, &idx, 0); // 나눈 토큰들을 트리에 넣는다
 
-		compare_tree(std_root, ans_root, &result);
+		compare_tree(std_root, ans_root, &result); // 학생이 제출한 답으로 만든 트리와 정답으로 만든 트리를 비교해서 정답인지 확인한다
 
-		if(result == true){
+		if(result == true){ // 결과가 true라면
 			close(fd_std);
 			close(fd_ans);
 
@@ -809,7 +793,7 @@ int score_blank(char *id, char *filename) // 빈칸 문제를 채점하는 함�
 				free_node(std_root);
 			if(ans_root != NULL)
 				free_node(ans_root);
-			return true;
+			return true; // true 리턴
 
 		}
 	}
@@ -822,7 +806,7 @@ int score_blank(char *id, char *filename) // 빈칸 문제를 채점하는 함�
 	if(ans_root != NULL)
 		free_node(ans_root);
 
-	return false;
+	return false; // 오답 리턴
 }
 
 double score_program(char *id, char *filename) // 프로그램 문제를 채점하는 함수, 리턴값은 정답 여부 또는 감점된 점수
@@ -846,7 +830,7 @@ double score_program(char *id, char *filename) // 프로그램 문제를 채점�
 	return true; // 정답이면 true 리턴
 }
 
-int is_thread(char *qname)
+int is_thread(char *qname) // -t(lpthread 사용) 옵션으로 지정된 문제인지 확인하는 함수
 {
 	int i;
 	int size = sizeof(threadFiles) / sizeof(threadFiles[0]); // -lpthread 옵션으로 실행할 프로그램들의 목록이 저장된 threadFiles배열의 크기 계산
@@ -858,7 +842,7 @@ int is_thread(char *qname)
 	return false; // qname이 threadFiles에 없으면 false 리턴
 }
 
-double compile_program(char *id, char *filename)
+double compile_program(char *id, char *filename) // 프로그램 문제를 컴파일하는 함수
 {
 	int fd;
 	char tmp_f[BUFLEN], tmp_e[BUFLEN];
@@ -960,7 +944,7 @@ double check_error_warning(char *filename) // 컴파일 에러 내용이 저장�
 	return warning; // 점수 리턴
 }
 
-int execute_program(char *id, char *filename)
+int execute_program(char *id, char *filename) // 프로그램 문제를 실행하는 함수
 {
 	char std_fname[BUFLEN], ans_fname[BUFLEN];
 	char tmp[BUFLEN];
@@ -1125,7 +1109,7 @@ int get_file_type(char *filename) // 파일의 확장자를 확인하는 함수
 		return -1;
 }
 
-void rmdirs(const char *path)
+void rmdirs(const char *path) // 디렉터리 삭제하는 함수
 {
 	struct dirent *dirp;
 	struct stat statbuf;

@@ -11,7 +11,7 @@ char datatype[DATATYPE_SIZE][MINLEN] = {"int", "char", "double", "float", "long"
 			, "nlink_t", "uid_t", "gid_t", "time_t", "blksize_t"
 			, "blkcnt_t", "pid_t", "pthread_mutex_t", "pthread_cond_t", "pthread_t"
 			, "void", "size_t", "unsigned", "sigset_t", "sigjmp_buf"
-			, "rlim_t", "jmp_buf", "sig_atomic_t", "clock_t", "struct"};
+			, "rlim_t", "jmp_buf", "sig_atomic_t", "clock_t", "struct"}; // 자료형들
 
 
 operator_precedence operators[OPERATOR_CNT] = {
@@ -27,139 +27,139 @@ operator_precedence operators[OPERATOR_CNT] = {
 	,{"&&", 12}
 	,{"||", 13}
 	,{"=", 14}	,{"+=", 14}	,{"-=", 14}	,{"&=", 14}	,{"|=", 14}
-};
+}; // 연산자와 연산자 우선순위
 
-void compare_tree(node *root1,  node *root2, int *result)
+void compare_tree(node *root1,  node *root2, int *result) // 두 트리(답안)을 비교하여 같은 내용인지, 다른 내용인지 알아내는 함수
 {
 	node *tmp;
 	int cnt1, cnt2;
 
-	if(root1 == NULL || root2 == NULL){
+	if(root1 == NULL || root2 == NULL){ // root1 root2중 NULL인 것이 있다면
 		*result = false;
 		return;
 	}
 
-	if(!strcmp(root1->name, "<") || !strcmp(root1->name, ">") || !strcmp(root1->name, "<=") || !strcmp(root1->name, ">=")){
-		if(strcmp(root1->name, root2->name) != 0){
+	if(!strcmp(root1->name, "<") || !strcmp(root1->name, ">") || !strcmp(root1->name, "<=") || !strcmp(root1->name, ">=")){ // 루트1의 토큰이 비교연산자라면
+		if(strcmp(root1->name, root2->name) != 0){ // 두 트리의 루트의 토큰이 서로 다르다면
 
-			if(!strncmp(root2->name, "<", 1))
-				strncpy(root2->name, ">", 1);
+			if(!strncmp(root2->name, "<", 1)) // 루트2의 토큰이 < 라면
+				strncpy(root2->name, ">", 1); // 루트2에 > 복사
 
-			else if(!strncmp(root2->name, ">", 1))
-				strncpy(root2->name, "<", 1);
+			else if(!strncmp(root2->name, ">", 1)) // 루트2의 토큰이 >라면
+				strncpy(root2->name, "<", 1); // 루트2에 < 복사
 
-			else if(!strncmp(root2->name, "<=", 2))
-				strncpy(root2->name, ">=", 2);
+			else if(!strncmp(root2->name, "<=", 2)) // 루트2의 토큰이 <=라면
+				strncpy(root2->name, ">=", 2); // 루트2에 >= 복사
 
-			else if(!strncmp(root2->name, ">=", 2))
-				strncpy(root2->name, "<=", 2);
+			else if(!strncmp(root2->name, ">=", 2)) // 루트2의 토큰이 >=라면
+				strncpy(root2->name, "<=", 2); // 루트2에 <= 복사
 
-			root2 = change_sibling(root2);
+			root2 = change_sibling(root2); // 루트2의 자식 노드들의 순서를 바꾼다
 		}
 	}
 
-	if(strcmp(root1->name, root2->name) != 0){
-		*result = false;
+	if(strcmp(root1->name, root2->name) != 0){ // 루트1의 토큰과 루트2의 토큰이 서로 다르다면
+		*result = false; // 오답
 		return;
 	}
 
-	if((root1->child_head != NULL && root2->child_head == NULL)
+	if((root1->child_head != NULL && root2->child_head == NULL) // 루트1과 루트2의 자식 노드 존재 유무가 서로 다르다면
 		|| (root1->child_head == NULL && root2->child_head != NULL)){
-		*result = false;
+		*result = false; // 오답
 		return;
 	}
 
-	else if(root1->child_head != NULL){
-		if(get_sibling_cnt(root1->child_head) != get_sibling_cnt(root2->child_head)){
-			*result = false;
+	else if(root1->child_head != NULL){ // 루트1에 자식 노드가 있다면
+		if(get_sibling_cnt(root1->child_head) != get_sibling_cnt(root2->child_head)){ // 루트1과 루트2의 자식 노드 개수가 서로 다르다면
+			*result = false; // 오답
 			return;
 		}
 
-		if(!strcmp(root1->name, "==") || !strcmp(root1->name, "!="))
+		if(!strcmp(root1->name, "==") || !strcmp(root1->name, "!=")) // 루트1의 토큰이 == 또는 != 이라면
 		{
-			compare_tree(root1->child_head, root2->child_head, result);
+			compare_tree(root1->child_head, root2->child_head, result); // 재귀호출하여 루트1과 루트2의 자식노드를 비교
 
-			if(*result == false)
+			if(*result == false) // 위의 재귀 호출 결과가 flase라면
 			{
-				*result = true;
-				root2 = change_sibling(root2);
-				compare_tree(root1->child_head, root2->child_head, result);
+				*result = true; // 결과를 true로 바꾸고
+				root2 = change_sibling(root2); // 루트 2의 자식 노드들의 순서를 바꿔놓고
+				compare_tree(root1->child_head, root2->child_head, result); // 다시 비교
 			}
 		}
-		else if(!strcmp(root1->name, "+") || !strcmp(root1->name, "*")
+		else if(!strcmp(root1->name, "+") || !strcmp(root1->name, "*") // 루트1의 토큰이 +, *, |, ||, &, && 연산자라면
 				|| !strcmp(root1->name, "|") || !strcmp(root1->name, "&")
 				|| !strcmp(root1->name, "||") || !strcmp(root1->name, "&&"))
 		{
-			if(get_sibling_cnt(root1->child_head) != get_sibling_cnt(root2->child_head)){
-				*result = false;
+			if(get_sibling_cnt(root1->child_head) != get_sibling_cnt(root2->child_head)){ // 루트1과 루트2의 자식 노드의 개수가 서로 다르다면
+				*result = false; // 오답
 				return;
 			}
 
-			tmp = root2->child_head;
+			tmp = root2->child_head; // tmp에 루트2의 자식노드 포인터 저장
 
-			while(tmp->prev != NULL)
-				tmp = tmp->prev;
+			while(tmp->prev != NULL) // 루트2의 자식노드의 앞쪽에 다른 형제 노드가 있다면
+				tmp = tmp->prev; // 앞쪽 형제노드로 이동
 
 			while(tmp != NULL)
 			{
-				compare_tree(root1->child_head, tmp, result);
+				compare_tree(root1->child_head, tmp, result); // 재귀호출하여 위에서 구한 루트2의 자식노드와 루트1의 자식노드를 비교
 			
-				if(*result == true)
-					break;
-				else{
-					if(tmp->next != NULL)
-						*result = true;
-					tmp = tmp->next;
+				if(*result == true) // 결과가 true라면
+					break; // 반복 그만
+				else{ // 결과가 true가 아니라면
+					if(tmp->next != NULL) // tmp의 뒤에 다른 형제노드가 있다면
+						*result = true; // 결과에 true를 넣어놓고
+					tmp = tmp->next; // 다음 형제노드로 이동
 				}
 			}
 		}
 		else{
-			compare_tree(root1->child_head, root2->child_head, result);
+			compare_tree(root1->child_head, root2->child_head, result); // 재귀호출로 루트1의 자식노드와 루트2의 자식노드를 다시 비교한다
 		}
 	}	
 
 
-	if(root1->next != NULL){
+	if(root1->next != NULL){ // 루트 1의 뒤에 다른 형제노드가 있다면
 
-		if(get_sibling_cnt(root1) != get_sibling_cnt(root2)){
-			*result = false;
+		if(get_sibling_cnt(root1) != get_sibling_cnt(root2)){ // 루트1과 루트2의 자식 노드의 개수가 서로 다르다면
+			*result = false; // 오답
 			return;
 		}
 
-		if(*result == true)
+		if(*result == true) // 결과값에 true가 들어있다면
 		{
-			tmp = get_operator(root1);
+			tmp = get_operator(root1); // root1에 대한 연산자 노드 찾는다
 	
-			if(!strcmp(tmp->name, "+") || !strcmp(tmp->name, "*")
+			if(!strcmp(tmp->name, "+") || !strcmp(tmp->name, "*") // 찾은 연산자가 +, *, |, ||, &, && 중 하나라면
 					|| !strcmp(tmp->name, "|") || !strcmp(tmp->name, "&")
 					|| !strcmp(tmp->name, "||") || !strcmp(tmp->name, "&&"))
 			{	
 				tmp = root2;
 	
-				while(tmp->prev != NULL)
+				while(tmp->prev != NULL) // 루트2의 형제 노드들 중 제일 앞에 있는 노드로 이동
 					tmp = tmp->prev;
 
 				while(tmp != NULL)
 				{
-					compare_tree(root1->next, tmp, result);
+					compare_tree(root1->next, tmp, result); // 재귀호출하여 위에서 구한 루트2의 형제노드와 루트1의 형제노드를 비교
 
-					if(*result == true)
-						break;
-					else{
-						if(tmp->next != NULL)
-							*result = true;
-						tmp = tmp->next;
+					if(*result == true) // 결과가 true라면
+						break; // 반복 그만
+					else{ // false라면
+						if(tmp->next != NULL) // 다음 형제 노드가 있다면
+							*result = true; // 결과값으로 true를 넣어놓고
+						tmp = tmp->next; // 다음 형제 노드로 이동
 					}
 				}
 			}
 
 			else
-				compare_tree(root1->next, root2->next, result);
+				compare_tree(root1->next, root2->next, result); // 재귀호출하여 루트1의 다음 형제노드와 루트2의 다음 형제노드를 비교
 		}
 	}
 }
 
-int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
+int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN]) // 답안을 토큰으로 분해하는 함수
 {
 	char *start, *end;
 	char tmp[BUFLEN];
@@ -317,7 +317,7 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 			 	else if(row == 0) // 첫번째 토큰이라면 
 				{
 					if((end = strpbrk(start + 1, op)) == NULL){ // start+1 문자열에 연산자가 포함되어 있지 않다면
-						strncat(tokens[row], start, 1);
+						strncat(tokens[row], start, 1); // tokens[row] 뒤에 덧붙임
 						start += 1;
 					}
 					else{
@@ -424,23 +424,23 @@ int make_tokens(char *str, char tokens[TOKEN_CNT][MINLEN])
 				row--;	
 
 			for(i = 0; i < end - start; i++){
-				if(i > 0 && *(start + i) == '.'){
-					strncat(tokens[row], start + i, 1);
+				if(i > 0 && *(start + i) == '.'){ // 다음 문자가 .이면
+					strncat(tokens[row], start + i, 1); // 덧붙임
 
-					while( *(start + i +1) == ' ' && i< end - start )
+					while( *(start + i +1) == ' ' && i< end - start ) // 공백 제거
 						i++; 
 				}
-				else if(start[i] == ' '){
+				else if(start[i] == ' '){ // 공백 skip
 					while(start[i] == ' ')
 						i++;
 					break;
 				}
 				else
-					strncat(tokens[row], start + i, 1);
+					strncat(tokens[row], start + i, 1); // 뒤에 토큰 덧붙임
 			}
 
-			if(start[0] == ' '){
-				start += i;
+			if(start[0] == ' '){ // 첫분자가 공백이라면
+				start += i; // 다음 문자로 이동
 				continue;
 			}
 			start += i;
@@ -894,7 +894,7 @@ int is_operator(char *op) // 전달인자로 받은 문자가 연산자인지 �
 	return false;// 전달인자와 일치하는 연산자가 없었다면 false 리턴
 }
 
-void print(node *cur)
+void print(node *cur) // 노드 정보 출력
 {
 	if(cur->child_head != NULL){ // 자식노드가 있다면
 		print(cur->child_head); // 자식노드 출력
@@ -905,10 +905,10 @@ void print(node *cur)
 		print(cur->next); // 형제노드 출력
 		printf("\t");
 	}
-	printf("%s", cur->name); // 
+	printf("%s", cur->name); // 갖고있는 토큰 출력
 }
 
-node *get_operator(node *cur)
+node *get_operator(node *cur) // 해당 노드에 대한 연산자 찾는 함수
 {
 	if(cur == NULL)
 		return cur;
@@ -1266,7 +1266,7 @@ void clear_tokens(char tokens[TOKEN_CNT][MINLEN]) // 전달인자로 받은 toke
 		memset(tokens[i], 0, sizeof(tokens[i]));
 }
 
-char *rtrim(char *_str)
+char *rtrim(char *_str) // 문자열 오른쪽의 white space 제거
 {
 	char tmp[BUFLEN];
 	char *end;
@@ -1281,7 +1281,7 @@ char *rtrim(char *_str)
 	return _str; // 리턴
 }
 
-char *ltrim(char *_str)
+char *ltrim(char *_str)// 문자열 왼쪽의 white space 제거
 {
 	char *start = _str; // _str의 맨 앞 문자를 가리키는 포인터
 
