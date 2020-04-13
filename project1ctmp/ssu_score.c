@@ -302,7 +302,6 @@ void do_mOption()// m옵션 수행하는 함수
 
 	sprintf(filename, "%s", "score_table.csv"); // 점수 테이블 파일이 생성될 경로를 생성해 filename에 저장
 	write_scoreTable(filename); // 변경된 score_table 구조체 배열의 내용을 score.csv에 출력
-	printf("do_mOption end\n");
 }
 
 int is_exist(char (*src)[FILELEN], char *target) // src 문장열 배열 안에 target 문자열이 들어있는지 확인하는 함수

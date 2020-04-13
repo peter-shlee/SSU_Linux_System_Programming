@@ -20,13 +20,13 @@
 	#define CFILE 4
 #endif
 #ifndef OVER
-	#define OVER 5
+	#define OVER 5 // 학생들이 제출한 프로그램의 실행이 여기에 정의된 시간(초단위) 이상 걸리면 0점처리
 #endif
 #ifndef WARNING
-	#define WARNING -0.1
+	#define WARNING -0.1 // 컴파일 WARNING 발생한 문제 감점 점수
 #endif
 #ifndef ERROR
-	#define ERROR 0
+	#define ERROR 0 // 컴파일 에러 발생시 점수
 #endif
 
 #define FILELEN 64
