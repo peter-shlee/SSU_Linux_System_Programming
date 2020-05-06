@@ -48,27 +48,148 @@ int main(void)
 //	sortFileData(curFileData);
 //
 
-	updateFileDataStatus(&prevFileData, &curFileData);
-
-	printFileData(curFileData);
-	printFileData(prevFileData);
+	while(1) {
+		printf("-----------------------------------------\n");
+		updateFileDataStatus(&prevFileData, &curFileData);
+		checkFileDataStatus(prevFileData, curFileData);
+		printf("cur\n");
+		printFileData(curFileData);
+		printf("prev\n");
+		printFileData(prevFileData);
+		sleep(10);
+	}
 
 }
 
 void checkFileDataStatus(const struct FileData *prevFileData, const struct FileData *curFileData) {
+	int i, j;
+
+	// 이진탐색 구현
+
+	for (i = 0; i < curFileData->filesCnt; ++i) {
+		int fileNameCmpResult;
+		int start, end, mid;
+		int sameNameFindFlag = 0;
+		start = 0;
+		end = prevFileData->filesCnt - 1;
+		while(start <= end) {
+			mid = (start + end) / 2;
+			fileNameCmpResult = strcmp(prevFileData->files[mid].absolutePathName, curFileData->files[i].absolutePathName);
+			if (fileNameCmpResult == 0) {
+				sameNameFindFlag = 1;
+				break;
+			} else if (fileNameCmpResult > 0) {
+				end = mid - 1;
+			} else {
+				start = mid + 1;
+			}
+		}
+
+		if (sameNameFindFlag) {
+			if (prevFileData->files[mid].lastModifyTime == curFileData->files[i].lastModifyTime) { // 파일 수정되지 않은 경우
+				;
+			} else { // 파일 수정된 경우
+				// 파일 수정 메세지 출력
+				printf("%s is modified\n", curFileData->files[i].absolutePathName);
+			}
+		} else { // 파일 새로 추가된 경우
+			printf("%s is created\n", curFileData->files[i].absolutePathName);
+		}
+	}
+
+	for (i = 0; i < prevFileData->filesCnt; ++i) {
+		int start, end, mid;
+		int fileNameCmpResult;
+		int sameNameFindFlag = 0;
+		start = 0;
+		end = curFileData->filesCnt - 1;
+		mid = (start + end) / 2;
+		while(start <= end) {
+			mid = (start + end) / 2;
+			fileNameCmpResult = strcmp(curFileData->files[mid].absolutePathName, prevFileData->files[i].absolutePathName);
+
+			if (fileNameCmpResult == 0) {
+				sameNameFindFlag = 1;
+				break;
+			} else if (fileNameCmpResult > 0) {
+				end = mid - 1;
+			} else {
+				start = mid + 1;
+			}
+		}
+
+		if (sameNameFindFlag) { // 위에서 이미 검사 함
+			continue;
+		} else { // 파일 삭제된 경우
+			printf("%s is deleted\n", prevFileData->files[i].absolutePathName);
+		}
+	}
+
+	///////////////////////
+//	for (i = 0; i < curFileData->filesCnt; ++i) {
+//		int sameNameFindFlag = 0;
+//		for (j = 0; j < prevFileData->filesCnt; ++j) {
+//			int fileNameCmpResult = strcmp(prevFileData->files[i].absolutePathName, curFileData->files[j].absoluthFilePath);
+//			if (fileNameCmpResult) {
+//				sameNameFindFlag = 1;
+//				break;
+//			}
+//		}
+//
+//		if (sameNameFindFlag) {
+//			if (prevFileData->files[i].lastModifyTime == curFileData->files[i].lastModifyTime) { // 파일 수정되지 않은 경우
+//				;
+//			} else { // 파일 수정된 경우
+//				// 파일 수정 메세지 출력
+//			}
+//		} else {
+//
+//		}
+//	}
+//	
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//	for (i = 0, j = 0; i < prevFileData->filesCnt && j < curFileData->filesCnt; ) {
+//		int fileNameCmpResult = strcmp(prevFileData->files[i].absolutePathName, curFileData->files[j].absoluthFilePath);
+//		if (fileNameCmpResult == 0) {
+//			// 파일 수정 시간 비교
+//
+//			if (prevFileData->files[i].lastModifyTime == curFileData->files[i].lastModifyTime) { // 파일 수정되지 않은 경우
+//				;
+//			} else { // 파일 수정된 경우
+//				// 파일 수정 메세지 출력
+//			}
+//			++i;
+//			++j;
+//			continue;
+//		} else if (fileNameCmpReuslt > 0) {
+//
+//		} else {
+//
+//		}
+//
+//
+//	}
 
 
 }
 
 void updateFileDataStatus(struct FileData **prevFileData, struct FileData **curFileData) {
 	char path[PATH_MAX];
-	struct FileData **tmp;
+	struct FileData *tmp;
 	getcwd(path, PATH_MAX);
 
 	// 새롭게 데이터를 갱신해야 하므로 curFileData를 prevFileData로 옮김, prevFileData는 새로운 파일 정보를 넣어 재활용
-	tmp = prevFileData;
-	prevFileData = curFileData;
-	curFileData = tmp;
+	tmp = *prevFileData;
+	*prevFileData = *curFileData;
+	*curFileData = tmp;
 
 	(*curFileData)->filesCnt = 0; // 새로운 파일 데이터 생성(getCurFileState 호출) 전에 반드시 filesCnt를 0으로 만들어 줘야 한다
 	getCurFileState(*curFileData, TARGET_DIRECTORY_NAME);
