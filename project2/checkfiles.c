@@ -4,6 +4,9 @@
 #include <dirent.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
+#include <signal.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -27,6 +30,8 @@ void getCurFileState(struct FileData *fileData, const char *dirname);
 void printFileData(const struct FileData *fileData);
 void sortFileData(struct FileData *fileData);
 int compareFileInfo(const void *a, const void *b);
+int ssu_daemon_init(const char *path);
+const char *getRelativePath(const char *absolutePath);
 
 int main(void)
 {
@@ -38,7 +43,8 @@ int main(void)
 	prevFileData->filesCnt = 0;
 	curFileData->filesCnt = 0;
 
-//	getcwd(path, PATH_MAX);
+	getcwd(path, PATH_MAX);
+	ssu_daemon_init(path);
 //
 //	curFileData->filesCnt = 0; // 새로운 파일 데이터 생성(getCurFileState 호출) 전에 반드시 filesCnt를 0으로 만들어 줘야 한다
 //	getCurFileState(curFileData, TARGET_DIRECTORY_NAME);
@@ -48,21 +54,34 @@ int main(void)
 //	sortFileData(curFileData);
 //
 
-	while(1) {
-		printf("-----------------------------------------\n");
-		updateFileDataStatus(&prevFileData, &curFileData);
-		checkFileDataStatus(prevFileData, curFileData);
-		printf("cur\n");
-		printFileData(curFileData);
-		printf("prev\n");
-		printFileData(prevFileData);
-		sleep(10);
-	}
+//	updateFileDataStatus(&prevFileData, &curFileData);
+//	while(1) {
+//		printf("-----------------------------------------\n");
+//		updateFileDataStatus(&prevFileData, &curFileData);
+//		checkFileDataStatus(prevFileData, curFileData);
+//		printf("cur\n");
+//		printFileData(curFileData);
+//		printf("prev\n");
+//		printFileData(prevFileData);
+//		sleep(10);
+//	}
 
 }
 
 void checkFileDataStatus(const struct FileData *prevFileData, const struct FileData *curFileData) {
 	int i, j;
+	FILE *logfp;
+	time_t curtime;
+	struct tm *tmpointer;
+	char timebuf[64];
+	time(&curtime);
+	tmpointer = localtime(&curtime);
+	sprintf(timebuf, "%d-%02d-%02d %02d:%02d:%02d", 1900 + tmpointer->tm_year, tmpointer->tm_mon, tmpointer->tm_mday, tmpointer->tm_hour, tmpointer->tm_min, tmpointer->tm_sec);
+
+	if ((logfp = fopen("20160548/log.txt", "a")) == NULL) {
+		fprintf(stderr, "fopen error for 20160548/log.txt\n");
+		exit(1);
+	}
 
 	// 이진탐색 구현
 
@@ -90,10 +109,12 @@ void checkFileDataStatus(const struct FileData *prevFileData, const struct FileD
 				;
 			} else { // 파일 수정된 경우
 				// 파일 수정 메세지 출력
-				printf("%s is modified\n", curFileData->files[i].absolutePathName);
+				fprintf(logfp, "[%s][modify_%s]\n", timebuf, getRelativePath(curFileData->files[i].absolutePathName));
+				//printf("%s is modified\n", curFileData->files[i].absolutePathName);
 			}
 		} else { // 파일 새로 추가된 경우
-			printf("%s is created\n", curFileData->files[i].absolutePathName);
+			fprintf(logfp, "[%s][create_%s]\n", timebuf, getRelativePath(curFileData->files[i].absolutePathName));
+			//printf("%s is created\n", curFileData->files[i].absolutePathName);
 		}
 	}
 
@@ -121,64 +142,12 @@ void checkFileDataStatus(const struct FileData *prevFileData, const struct FileD
 		if (sameNameFindFlag) { // 위에서 이미 검사 함
 			continue;
 		} else { // 파일 삭제된 경우
-			printf("%s is deleted\n", prevFileData->files[i].absolutePathName);
+			fprintf(logfp, "[%s][delete_%s]\n", timebuf, getRelativePath(prevFileData->files[i].absolutePathName));
+			//printf("%s is deleted\n", prevFileData->files[i].absolutePathName);
 		}
 	}
 
-	///////////////////////
-//	for (i = 0; i < curFileData->filesCnt; ++i) {
-//		int sameNameFindFlag = 0;
-//		for (j = 0; j < prevFileData->filesCnt; ++j) {
-//			int fileNameCmpResult = strcmp(prevFileData->files[i].absolutePathName, curFileData->files[j].absoluthFilePath);
-//			if (fileNameCmpResult) {
-//				sameNameFindFlag = 1;
-//				break;
-//			}
-//		}
-//
-//		if (sameNameFindFlag) {
-//			if (prevFileData->files[i].lastModifyTime == curFileData->files[i].lastModifyTime) { // 파일 수정되지 않은 경우
-//				;
-//			} else { // 파일 수정된 경우
-//				// 파일 수정 메세지 출력
-//			}
-//		} else {
-//
-//		}
-//	}
-//	
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//	for (i = 0, j = 0; i < prevFileData->filesCnt && j < curFileData->filesCnt; ) {
-//		int fileNameCmpResult = strcmp(prevFileData->files[i].absolutePathName, curFileData->files[j].absoluthFilePath);
-//		if (fileNameCmpResult == 0) {
-//			// 파일 수정 시간 비교
-//
-//			if (prevFileData->files[i].lastModifyTime == curFileData->files[i].lastModifyTime) { // 파일 수정되지 않은 경우
-//				;
-//			} else { // 파일 수정된 경우
-//				// 파일 수정 메세지 출력
-//			}
-//			++i;
-//			++j;
-//			continue;
-//		} else if (fileNameCmpReuslt > 0) {
-//
-//		} else {
-//
-//		}
-//
-//
-//	}
-
-
+	fclose(logfp);
 }
 
 void updateFileDataStatus(struct FileData **prevFileData, struct FileData **curFileData) {
@@ -259,4 +228,69 @@ void sortFileData(struct FileData *fileData){
 
 int compareFileInfo(const void *a, const void *b) {
 	return strcmp(((const struct FileInfo *)a)->absolutePathName, ((const struct FileInfo *)b)->absolutePathName);
+}
+
+int ssu_daemon_init(const char *path) {
+	pid_t pid;
+	int fd, maxfd;
+
+	struct FileData *prevFileData;
+	struct FileData *curFileData;
+
+	if ((pid = fork()) < 0) {
+		fprintf(stderr, "fork error\n");
+		exit(1);
+	}
+	else if (pid != 0)
+		exit(0);
+
+	pid = getpid();
+	printf("process %d running as daemon\n", pid);
+	setsid();
+	signal(SIGTTIN, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	maxfd = getdtablesize();
+
+	for (fd = 0; fd < maxfd; fd++)
+		close(fd);
+
+	umask(0);
+	chdir(path);
+	fd = open("/dev/null", O_RDWR);
+	dup(0);
+	dup(0);
+
+
+
+	if (chdir("20160548") < 0) {
+		if (mkdir("20160548", 0766) < 0) {
+			fprintf(stderr, "mkdir error\n");
+		}
+		chdir("20160548");
+	}
+	chdir("..");
+
+	prevFileData = (struct FileData *) malloc(sizeof(struct FileData));
+	curFileData = (struct FileData *) malloc(sizeof(struct FileData));
+	prevFileData->filesCnt = 0;
+	curFileData->filesCnt = 0;
+
+	updateFileDataStatus(&prevFileData, &curFileData);
+	while(1) {
+		updateFileDataStatus(&prevFileData, &curFileData);
+		checkFileDataStatus(prevFileData, curFileData);
+		sleep(1);
+	}
+
+	return 0;
+}
+
+const char *getRelativePath(const char *absolutePath) {
+	int i;
+	for (i = strlen(absolutePath) - 1; i >= 0; --i) {
+		if (absolutePath[i] == '/') break;
+	}
+
+	return absolutePath + i + 1;
 }
