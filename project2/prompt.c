@@ -43,14 +43,85 @@ int main(void)
 
 void doDeleteCommand(){
 	char *filename;
-	char *endTime;
-	char *option;
+	char *nextToken;
+	const char *filesDirPath = "trash/files/";
+	const char *infoDirPath = "trash/info/";
+	int END_TIME = 0;
+	int i_option = 0;
+	int r_option = 0;
+	int i;
 
-	filename = strtok(NULL, " ");
-	endTime = strtok(NULL, " ");
-	option = strtok(NULL, " ");
+	nextToken = strtok(NULL, " ");
+	filename = nextToken;
 
-	printf("%s  %s  %s\n", filename, endTime, option);
+	nextToken = strtok(NULL, " ");
+	if (nextToken == NULL) { // 바로 삭제
+
+	}else if (nextToken[0] == '-') { // END_TIME 주어지지 않고 옵션이 전달된 경우
+		// 옵션 확인
+		if (nextToken[1] == 'i') i_option = 1;
+		else if (nextToken[1] == 'r') r_option = 1;
+		else;
+
+		// 다음 옵션 확인
+		nextToken = strtok(NULL, " ");
+		if (nextToken == NULL) {
+			;
+		}else if (nextToken[0] == '-' && nextToken[1] == 'i') {
+			i_option = 1;
+		} else if (nextToken[0] == '-' && nextToken[1] == 'r') {
+			r_option = 1;
+		} else {
+			return;
+		}
+	} else if ('0' <= nextToken[0] && nextToken[0] <= '9') { // END_TIME 옵션 전달된 경우
+		// 옵션들 확인
+		for (i = 0; i < 2; ++i) {
+			nextToken = strtok(NULL, " ");
+			if (nextToken == NULL) {
+				break;
+			}else if (nextToken[0] == '-' && nextToken[1] == 'i') {
+				i_option = 1;
+			} else if (nextToken[0] == '-' && nextToken[1] == 'r') {
+				r_option = 1;
+			} else {
+				return;
+			}
+
+		}
+	} else { // 잘못된 옵션 전달
+		return;
+	}
+
+	printf("i_option : %d  r_option : %d  END_TIME : %d\n", i_option, r_option, END_TIME);
+
+
+	if (chdir("trash") < 0) {
+		if (mkdir("trash", 0766) < 0) {
+			fprintf(stderr, "mkdir error\n");
+		}
+		chdir("trash");
+	}
+
+	if (chdir("files") < 0) {
+		if (mkdir("files", 0766) < 0) {
+			fprintf(stderr, "mkdir error\n");
+		}
+		chdir("files");
+	}
+	chdir("..");
+
+	if (chdir("info") < 0) {
+		if (mkdir("info", 0766) < 0) {
+			fprintf(stderr, "mkdir error\n");
+		}
+		chdir("info");
+	}
+	chdir("..");
+	chdir("..");
+
+
+
 	return;
 }
 
