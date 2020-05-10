@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/stat.h>
 
 #define BUFFER_SIZE 1024
@@ -15,14 +16,117 @@ void doHelpCommand();
 void doTreeCommand();
 void printTree(const char *dirname, int depth);
 
+struct DeleteFileInfo{
+	char *absolutePathName;
+	int checkBeforeDelete;
+	int deleteImmediately;
+	time_t deleteTime;
+};
+
+struct DeleteFileHeap{
+	struct DeleteFileInfo *deleteFiles[BUFFER_SIZE];
+	int size;
+};
+
+struct DeleteFileHeap deleteFileHeap;
+
+void pushToHeap(struct DeleteFileInfo* newElement);
+struct DeleteFileInfo *popFromHeap();
+void checkFileDeleteTime();
+void deleteFile(struct DeleteFileInfo *deleteFileInfo);
+
+
+void checkFileDeleteTime(){
+	time_t tmptime;
+	time_t currentTime;
+	tmptime = time(NULL);
+	currentTime = mktime(localtime(&tmptime));
+	printf("curtime : %ld\n", currentTime);
+	while(1) {
+		if (deleteFileHeap.size != 0 && deleteFileHeap.deleteFiles[0]->deleteTime < currentTime) {
+			printf("delete time : %ld, current time : %ld\n", deleteFileHeap.deleteFiles[0]->deleteTime, currentTime);
+			deleteFile(popFromHeap());
+		} else {
+			break;
+		}
+	}
+}
+
+void deleteFile(struct DeleteFileInfo *deleteFileInfo){
+	if(deleteFileInfo->checkBeforeDelete) { // r옵션 수행
+		char yesOrNo;
+		printf("Delete [y/n]? ");
+		scanf("%c", &yesOrNo);
+		while(getchar()!='\n');
+
+		if (yesOrNo != 'y') return;
+	}
+
+	if(deleteFileInfo->deleteImmediately) { // i옵션 수행
+		if (remove(deleteFileInfo->absolutePathName) < 0) {
+			fprintf(stderr, "remove error for %s\n", deleteFileInfo->absolutePathName);
+			fprintf(stderr, "%s\n", strerror(errno));
+		}
+	} else { // i옵션 아닐 때 (trash 디렉토리 이용)
+		// trash/file 디렉토리로 이동할 파일의 파일명은 절대경로 + 구분자 + 삭제된 시간으로 하기? 삭제된 시간만 이용? .... 삭제된 시간 + 파일명만?...
+		//
+		// info디렉토리에 들어갈 파일 이름은 정해져있음 절대경로를 제외하고 최종 파일 이름만 포함되어야 함. 중복되면 숫자붙이자
+
+		//info 디렉토리의 크기가 2kb가 넘으면 오래된 파일부터 삭제해야함 - 오래된 파일 찾는건 mtime 이용하면 될듯
+	}
+
+	free(deleteFileInfo);
+}
+
 int main(void)
 {
 	char command_buf[BUFFER_SIZE];
 	char *command;
+////////////////////////////////////////////
+//struct DeleteFileInfo *testElement = (struct DeleteFileInfo *) malloc(sizeof(struct DeleteFileInfo));
+//testElement->absolutePathName = "test Element1";
+//testElement->deleteTime = 1000;
+//pushToHeap(testElement);
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//
+//testElement = (struct DeleteFileInfo *) malloc(sizeof(struct DeleteFileInfo));
+//testElement->absolutePathName = "test Element2";
+//testElement->deleteTime = 500;
+//pushToHeap(testElement);
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//
+//testElement = (struct DeleteFileInfo *) malloc(sizeof(struct DeleteFileInfo));
+//testElement->absolutePathName = "test Element3";
+//testElement->deleteTime = 700;
+//pushToHeap(testElement);
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//
+//testElement = (struct DeleteFileInfo *) malloc(sizeof(struct DeleteFileInfo));
+//testElement->absolutePathName = "test Element4";
+//testElement->deleteTime = 100;
+//pushToHeap(testElement);
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//
+//
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//popFromHeap();
+//
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//popFromHeap();
+//
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//popFromHeap();
+//
+//printf("%s, %ld\n", deleteFileHeap.deleteFiles[0]->absolutePathName, deleteFileHeap.deleteFiles[0]->deleteTime);
+//popFromHeap();
+///////////////////////////////////////////
+
+
 
 	while(1) {
 		printf("20160548>");
 		fgets(command_buf, sizeof(command_buf), stdin);
+		if(command_buf[0] == '\n') continue;
 		command_buf[strlen(command_buf) - 1] = '\0';
 		command = strtok(command_buf, " ");
 
@@ -36,20 +140,25 @@ int main(void)
 		} else {
 			doHelpCommand();
 		}
+		checkFileDeleteTime();
 	}
 
 	exit(0);
 }
 
 void doDeleteCommand(){
+	struct DeleteFileInfo *newDeleteFileInfo;
 	char *filename;
+	char *absolutePathName;
 	char *nextToken;
 	const char *filesDirPath = "trash/files/";
 	const char *infoDirPath = "trash/info/";
-	int END_TIME = 0;
+	char *END_DATE = NULL;
+	char *END_TIME = NULL;
 	int i_option = 0;
 	int r_option = 0;
 	int i;
+	time_t deleteTime = 0;
 
 	nextToken = strtok(NULL, " ");
 	filename = nextToken;
@@ -75,6 +184,10 @@ void doDeleteCommand(){
 			return;
 		}
 	} else if ('0' <= nextToken[0] && nextToken[0] <= '9') { // END_TIME 옵션 전달된 경우
+		END_DATE = nextToken;
+		nextToken = strtok(NULL, " ");
+		END_TIME = nextToken;
+		if (END_TIME == NULL) return;
 		// 옵션들 확인
 		for (i = 0; i < 2; ++i) {
 			nextToken = strtok(NULL, " ");
@@ -93,7 +206,7 @@ void doDeleteCommand(){
 		return;
 	}
 
-	printf("i_option : %d  r_option : %d  END_TIME : %d\n", i_option, r_option, END_TIME);
+	printf("i_option : %d  r_option : %d  END_TIME : %s\n", i_option, r_option, END_TIME);
 
 
 	if (chdir("trash") < 0) {
@@ -119,8 +232,46 @@ void doDeleteCommand(){
 	}
 	chdir("..");
 	chdir("..");
+	chdir("check");
+	
+	if (END_DATE != NULL && END_TIME != NULL) { // 삭제 예정 시간이 주어졌다면
+		struct tm deletetm;
+		char *dateToken;
+		char *timeToken;
 
+		deletetm.tm_year = atoi(strtok(END_DATE, "-")) - 1900;
+		deletetm.tm_mon = atoi(strtok(NULL, "-")) - 1;
+		deletetm.tm_mday = atoi(strtok(NULL, "-"));
+		
+		deletetm.tm_hour = atoi(strtok(END_TIME, ":"));
+		deletetm.tm_min = atoi(strtok(NULL, ":"));
+		deletetm.tm_sec = 0;
 
+		printf("%d-%d-%d %d:%d\n", deletetm.tm_year, deletetm.tm_mon, deletetm.tm_mday, deletetm.tm_hour, deletetm.tm_min);
+
+		deleteTime = mktime(&deletetm); // 삭제 시간을 time_t로 변환해 저장
+	}
+
+	newDeleteFileInfo = (struct DeleteFileInfo *) malloc(sizeof(newDeleteFileInfo));
+	newDeleteFileInfo->absolutePathName = realpath(filename, NULL);
+	if (i_option) {
+		newDeleteFileInfo->deleteImmediately = 1;
+	} else {
+		newDeleteFileInfo->deleteImmediately = 0;
+	}
+	if (r_option) {
+		newDeleteFileInfo->checkBeforeDelete = 1;
+	} else {
+		newDeleteFileInfo->checkBeforeDelete = 0;
+	}
+	newDeleteFileInfo->deleteTime = deleteTime;
+
+	// 우선순위 큐에 넣기
+	pushToHeap(newDeleteFileInfo);
+
+	printf("deleteTime : %ld, curTime : %ld, i_option : %d, r_option : %d, absolutePathName = %s\n", newDeleteFileInfo->deleteTime, time(NULL), newDeleteFileInfo->deleteImmediately, newDeleteFileInfo->checkBeforeDelete, newDeleteFileInfo->absolutePathName);
+
+	chdir("..");
 
 	return;
 }
@@ -222,4 +373,58 @@ void printTree(const char *dirname, int depth){
 		fprintf(stderr, "closedir error\n");
 		exit(1);
 	}
+}
+
+void pushToHeap(struct DeleteFileInfo* newElement){
+	int i;
+
+	deleteFileHeap.deleteFiles[deleteFileHeap.size] = newElement;
+	i = deleteFileHeap.size;
+
+	while(deleteFileHeap.size != 0 && i >= 0) {
+		if (deleteFileHeap.deleteFiles[i]->deleteTime < deleteFileHeap.deleteFiles[(i - 1) / 2]->deleteTime) {
+			//printf("swap\n");
+			struct DeleteFileInfo *tmp = deleteFileHeap.deleteFiles[i];
+			deleteFileHeap.deleteFiles[i] = deleteFileHeap.deleteFiles[(i - 1) / 2];
+			deleteFileHeap.deleteFiles[(i - 1) / 2] = tmp;
+		} else {
+			break;
+		}
+		i = (i - 1) / 2;
+	}
+	++(deleteFileHeap.size);
+}
+
+struct DeleteFileInfo *popFromHeap(){
+	int i;
+	struct DeleteFileInfo *popedData = deleteFileHeap.deleteFiles[0];
+	deleteFileHeap.deleteFiles[0] = deleteFileHeap.deleteFiles[--(deleteFileHeap.size)];
+	deleteFileHeap.deleteFiles[deleteFileHeap.size] = NULL;
+
+	i = 0;
+	while (i * 2 + 1 < deleteFileHeap.size) {
+		int nextIndex = 0;
+		if (i * 2 + 2 < deleteFileHeap.size){
+			nextIndex = deleteFileHeap.deleteFiles[2 * i + 1]->deleteTime < deleteFileHeap.deleteFiles[2 * i + 2]->deleteTime ? 2 * i + 1 : 2 * i + 2;
+		} else {
+			nextIndex = 2 * i + 1;
+		}
+
+		if (deleteFileHeap.deleteFiles[i]->deleteTime > deleteFileHeap.deleteFiles[nextIndex]->deleteTime) {
+			struct DeleteFileInfo *tmp = deleteFileHeap.deleteFiles[i];
+			deleteFileHeap.deleteFiles[i] = deleteFileHeap.deleteFiles[nextIndex];
+			deleteFileHeap.deleteFiles[nextIndex] = tmp;
+		} else {
+			break;
+		}
+
+		i = nextIndex;
+	}
+	
+	return popedData;
+}
+
+void printHeap(){
+
+
 }
