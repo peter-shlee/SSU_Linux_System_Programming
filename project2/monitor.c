@@ -33,39 +33,26 @@ int compareFileInfo(const void *a, const void *b);
 int ssu_daemon_init(const char *path);
 const char *getRelativePath(const char *absolutePath);
 
-int main(void)
+void startMntr(void)
 {
-	char path[PATH_MAX];
-	struct FileData *prevFileData;
-	struct FileData *curFileData;
-	prevFileData = (struct FileData *) malloc(sizeof(struct FileData));
-	curFileData = (struct FileData *) malloc(sizeof(struct FileData));
-	prevFileData->filesCnt = 0;
-	curFileData->filesCnt = 0;
+	pid_t pid;
+	if ((pid = fork()) == 0) {
+		char path[PATH_MAX];
+		struct FileData *prevFileData;
+		struct FileData *curFileData;
+		prevFileData = (struct FileData *) malloc(sizeof(struct FileData));
+		curFileData = (struct FileData *) malloc(sizeof(struct FileData));
+		prevFileData->filesCnt = 0;
+		curFileData->filesCnt = 0;
 
-	getcwd(path, PATH_MAX);
-	ssu_daemon_init(path);
-//
-//	curFileData->filesCnt = 0; // 새로운 파일 데이터 생성(getCurFileState 호출) 전에 반드시 filesCnt를 0으로 만들어 줘야 한다
-//	getCurFileState(curFileData, TARGET_DIRECTORY_NAME);
-//	chdir(path);
-//	// 이진 검색을 위해 생성된 file 데이터 sort
-//
-//	sortFileData(curFileData);
-//
-
-//	updateFileDataStatus(&prevFileData, &curFileData);
-//	while(1) {
-//		printf("-----------------------------------------\n");
-//		updateFileDataStatus(&prevFileData, &curFileData);
-//		checkFileDataStatus(prevFileData, curFileData);
-//		printf("cur\n");
-//		printFileData(curFileData);
-//		printf("prev\n");
-//		printFileData(prevFileData);
-//		sleep(10);
-//	}
-
+		getcwd(path, PATH_MAX);
+		ssu_daemon_init(path);
+	} else if (pid < 0) {
+		fprintf(stderr, "mntr starting error\n");
+		exit(1);
+	} else {
+		return;
+	}
 }
 
 void checkFileDataStatus(const struct FileData *prevFileData, const struct FileData *curFileData) {
@@ -76,10 +63,10 @@ void checkFileDataStatus(const struct FileData *prevFileData, const struct FileD
 	char timebuf[64];
 	time(&curtime);
 	tmpointer = localtime(&curtime);
-	sprintf(timebuf, "%d-%02d-%02d %02d:%02d:%02d", 1900 + tmpointer->tm_year, tmpointer->tm_mon, tmpointer->tm_mday, tmpointer->tm_hour, tmpointer->tm_min, tmpointer->tm_sec);
+	sprintf(timebuf, "%d-%02d-%02d %02d:%02d:%02d", 1900 + tmpointer->tm_year, tmpointer->tm_mon + 1, tmpointer->tm_mday, tmpointer->tm_hour, tmpointer->tm_min, tmpointer->tm_sec);
 
-	if ((logfp = fopen("20160548/log.txt", "a")) == NULL) {
-		fprintf(stderr, "fopen error for 20160548/log.txt\n");
+	if ((logfp = fopen("log.txt", "a")) == NULL) {
+		fprintf(stderr, "fopen error for log.txt\n");
 		exit(1);
 	}
 
@@ -260,16 +247,6 @@ int ssu_daemon_init(const char *path) {
 	fd = open("/dev/null", O_RDWR);
 	dup(0);
 	dup(0);
-
-
-
-	if (chdir("20160548") < 0) {
-		if (mkdir("20160548", 0766) < 0) {
-			fprintf(stderr, "mkdir error\n");
-		}
-		chdir("20160548");
-	}
-	chdir("..");
 
 	prevFileData = (struct FileData *) malloc(sizeof(struct FileData));
 	curFileData = (struct FileData *) malloc(sizeof(struct FileData));
