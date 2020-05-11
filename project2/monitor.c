@@ -232,7 +232,7 @@ int ssu_daemon_init(const char *path) {
 		exit(0);
 
 	pid = getpid();
-	printf("process %d running as daemon\n", pid);
+	//printf("process %d running as daemon\n", pid);
 	setsid();
 	signal(SIGTTIN, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);

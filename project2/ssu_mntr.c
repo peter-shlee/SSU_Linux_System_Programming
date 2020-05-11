@@ -28,7 +28,19 @@ struct DeleteFileHeap{
 	int size;
 };
 
+struct infoFile{
+	char filename[MAXNAMLEN];
+	char deleteTime[100];
+};
+
 struct DeleteFileHeap deleteFileHeap;
+
+int compareInfoFile(const void *a, const void *b){
+	const struct infoFile *infoFileA = (const struct infoFile *)a;
+	const struct infoFile *infoFileB = (const struct infoFile *)b;
+
+	return strcmp(infoFileA->deleteTime, infoFileB->deleteTime);
+}
 
 
 void doDeleteCommand();
@@ -36,15 +48,183 @@ void doExitCommand();
 void doHelpCommand();
 void doTreeCommand();
 void doRecoverCommand();
+void doSizeCommand();
 void printTree(const char *dirname, int depth);
 void pushToHeap(struct DeleteFileInfo* newElement);
 struct DeleteFileInfo *popFromHeap();
+void alarmHandlercheckFileDeleteTime();
 void checkFileDeleteTime();
 void deleteFile(struct DeleteFileInfo *deleteFileInfo);
 void checkAndEraseTrashFiles();
+int compareInfoFile(const void *a, const void *b);
+off_t getDirSize(const char *dirname);
+void printDirSize(const char *dirname, const char *dirpath, int depth, int maxDepth);
+
 
 char exec_path[PATH_MAX];
+int deleteUsingRFlag = 0;
 
+void doSizeCommand(){
+	char *nextToken;
+	char *filename;
+	struct stat statbuf;
+	off_t filesize;
+
+	nextToken = strtok(NULL, " ");
+	filename = nextToken;
+	if (filename == NULL) return;
+
+	if (stat(filename, &statbuf) == -1) {
+		fprintf(stderr, "stat error for %s\n", filename);
+		printf("ERROR:%s\n", strerror(errno));
+		return;
+	}
+
+	nextToken = strtok(NULL, " ");
+	if (nextToken == NULL) { // 해당 파일 정보만 출력
+		// 디렉터리 사이즈 구해야됨
+		if (S_ISDIR(statbuf.st_mode)) {
+			filesize = getDirSize(filename);
+		} else {
+			filesize = statbuf.st_size;
+		}
+		printf("%ld\t./%s\n", filesize, filename);
+		chdir("..");
+
+	}else if (!strcmp(nextToken, "-d")) { // 
+		char dirpath[PATH_MAX];
+		int maxDepth;
+		nextToken = strtok(NULL, " ");
+		if(nextToken == NULL) return;
+		maxDepth = atoi(nextToken);
+
+		if (!S_ISDIR(statbuf.st_mode)) {
+			filesize = statbuf.st_size;
+			printf("%ld\t./%s\n", filesize, filename);
+			return;
+		}
+
+		sprintf(dirpath, "./%s/", filename);
+		printf("%ld\t./%s\n", getDirSize(filename), filename);
+		chdir("..");
+		if (maxDepth > 1) {
+			printDirSize(filename, dirpath, 2, maxDepth);
+		}
+	} else {
+		return;
+	}
+
+}
+
+void printDirSize(const char *dirname, const char *dirpath, int depth, int maxDepth){
+	int i;
+	int firstFileFlag = 1;
+	char filename[MAXNAMLEN];
+	struct dirent *dentry;
+	struct stat statbuf;
+	struct dirent **nextdirlist;
+	DIR *dir = opendir(dirname);
+	char nextDirPath[PATH_MAX];
+	if (dir == NULL) {
+		fprintf(stderr, "opendir error\n");
+		exit(1);
+	}
+	chdir(dirname);
+
+
+	while((dentry = readdir(dir)) != NULL) {
+		if (dentry->d_ino == 0) continue;
+
+		memcpy(filename, dentry->d_name, MAXNAMLEN);
+		if (!strcmp(filename, ".") || !strcmp(filename, "..")) continue;
+
+
+		if (stat(filename, &statbuf) == -1) {
+			fprintf(stderr, "stat error for %s\n", filename);
+			printf("ERROR:%s\n", strerror(errno));
+			exit(1);
+		}
+
+		if (S_ISDIR(statbuf.st_mode)) {
+			int cnt;
+			if ((cnt = scandir(filename, &nextdirlist, NULL, NULL)) >= 2) {
+				// 재귀호출
+				if(depth < maxDepth) {
+					sprintf(nextDirPath, "%s%s/", dirpath, filename);
+					printDirSize(filename, nextDirPath, depth + 1, maxDepth);
+					chdir("..");
+				}
+				// 작업 후 원래 디렉토리로 복귀하기
+				printf("%ld\t%s%s\n", getDirSize(filename), dirpath, filename);
+				chdir("..");
+			}
+
+			if(cnt != -1)
+				free(nextdirlist);
+		} else {
+			printf("%ld\t%s%s\n", statbuf.st_size, dirpath, filename);
+		}
+	}
+
+	if (closedir(dir) < 0) {
+		fprintf(stderr, "closedir error\n");
+		exit(1);
+	}
+}
+
+off_t getDirSize(const char *dirname){
+	int i;
+	int firstFileFlag = 1;
+	char filename[MAXNAMLEN];
+	struct dirent *dentry;
+	struct stat statbuf;
+	struct dirent **nextdirlist;
+	DIR *dir = opendir(dirname);
+	off_t totalSize = 0;
+	if (dir == NULL) {
+		fprintf(stderr, "opendir error\n");
+		exit(1);
+	}
+	chdir(dirname);
+
+
+	while((dentry = readdir(dir)) != NULL) {
+		if (dentry->d_ino == 0) continue;
+
+		memcpy(filename, dentry->d_name, MAXNAMLEN);
+		if (!strcmp(filename, ".") || !strcmp(filename, "..")) continue;
+
+
+		if (stat(filename, &statbuf) == -1) {
+			fprintf(stderr, "stat error for %s\n", filename);
+			printf("ERROR:%s\n", strerror(errno));
+			exit(1);
+		}
+
+		if (S_ISDIR(statbuf.st_mode)) {
+			int cnt;
+			if ((cnt = scandir(filename, &nextdirlist, NULL, NULL)) >= 2) {
+				// 재귀호출
+				totalSize += getDirSize(filename);
+				// 작업 후 원래 디렉토리로 복귀하기
+				chdir("..");
+
+			}
+
+			if(cnt != -1)
+				free(nextdirlist);
+		} else {
+			totalSize += statbuf.st_size;
+		}
+	}
+
+	if (closedir(dir) < 0) {
+		fprintf(stderr, "closedir error\n");
+		exit(1);
+	}
+
+	return totalSize;
+}
 
 int main(void)
 {
@@ -52,10 +232,10 @@ int main(void)
 	char *command;
 
 	getcwd(exec_path, PATH_MAX);
-
 	startMntr();
+	setbuf(stdout, NULL);
 
-	signal(SIGALRM, checkFileDeleteTime);
+	signal(SIGALRM, alarmHandlercheckFileDeleteTime);
 	alarm(60);
 
 	while(1) {
@@ -74,11 +254,14 @@ int main(void)
 			doTreeCommand();
 		} else if (!strcmp(command, "RECOVER") || !strcmp(command, "recover")) {
 			doRecoverCommand();
+		} else if (!strcmp(command, "SIZE") || !strcmp(command, "size")) {
+			doSizeCommand();
 		} else {
 			doHelpCommand();
 		}
 		chdir(exec_path);
 		checkFileDeleteTime(); // 알람으로 1분마다 반복하도록 해보기
+		deleteUsingRFlag = 0;
 	}
 
 	exit(0);
@@ -219,6 +402,19 @@ void doExitCommand(){
 }
 
 void doHelpCommand(){
+	printf("- DELETE 지정한 삭제 시간에 자동으로 파일을 삭제해주는 명령어\n");
+	printf("\tusage : DELETE [FILENAME] [END_TIME] [OPTION]\n");
+	printf("\t-i\t\t삭제 시 'trash' 디렉토리로 삭제 파일과 정보를 이동시키지 않고 파일 삭제\n");
+	printf("\t-r\t\t지정한 시간에 삭제 시 삭제 여부 재확인\n");
+	printf("- RECOVER \"trash\" 디렉토리 안에 있는 파일을 원래 경로로 복구하는 명령어\n");
+	printf("\tusage : RECOVER [FILENAME] [OPTION]\n");
+	printf("\t-l\t\t'trash'디렉토리 밑에 있는 파일과 삭제 시간들을 삭제 시간이 오래된 순으로 출력 후, 명령어 진행\n");
+	printf("- TREE \"check\" 디렉토리의 구조를 tree 형태로 보여주는 명령어\n");
+	printf("\tusage : TREE\n");
+	printf("- EXIT 프로그램 종료시키는 명령어\n");
+	printf("\tusage : EXIT\n");
+	printf("- HELP 명령어 사용법을 출력하는 명령어\n");
+	printf("\tusage : HELP\n");
 
 }
 
@@ -227,7 +423,7 @@ void doTreeCommand(){
 	int cnt;
 	struct dirent **nextdirlist;
 	printf("check");
-	if ((cnt = scandir("check", &nextdirlist, NULL, NULL)) > 2) {
+	if ((cnt = scandir("check", &nextdirlist, NULL, NULL)) >= 2) {
 		for(i = 0; i < 21 - strlen("check"); ++i) {
 			printf("━");
 		}
@@ -400,6 +596,7 @@ void deleteFile(struct DeleteFileInfo *deleteFileInfo){
 		printf("Delete [y/n]? ");
 		scanf("%c", &yesOrNo);
 		while(getchar()!='\n');
+		deleteUsingRFlag = 1;
 
 		if (yesOrNo != 'y') return;
 	}
@@ -585,6 +782,7 @@ void doRecoverCommand(){
 	time_t mtime;
 	struct tm mtm;
 	struct utimbuf mutimbuf;
+	struct infoFile infoFiles[BUFFER_SIZE];
 
 	nextToken = strtok(NULL, " ");
 	filename = nextToken;
@@ -620,7 +818,7 @@ void doRecoverCommand(){
 			sameNameIndex[sameNameCnt] = i;
 			++sameNameCnt;
 		}
-		if (l_option) {
+		if (l_option) { // 삭제 시간이 오래된 순으로 출력해야함(scandir의 정렬함수 이용)
 			FILE *fp;
 			char deleteTime[BUFFER_SIZE];
 			char *deleteTimeForPrint;
@@ -634,10 +832,22 @@ void doRecoverCommand(){
 			fgets(deleteTime, BUFFER_SIZE, fp);
 			deleteTime[strlen(deleteTime) - 1] = '\0';
 			deleteTimeForPrint = deleteTime + 4;
-			printf("%d. %s \t%s\n", ++printedFileCnt, realFileName, deleteTimeForPrint);
+			strcpy(infoFiles[printedFileCnt].filename, realFileName);
+			strcpy(infoFiles[printedFileCnt].deleteTime, deleteTimeForPrint);
+
+			++printedFileCnt;
+			//printf("%d. %s \t%s\n", ++printedFileCnt, realFileName, deleteTimeForPrint);
 		}
 	}
-	if(l_option) printf("\n");
+	if(l_option) {
+		//sort
+		qsort(infoFiles, cnt - 2, sizeof(struct infoFile),  compareInfoFile);
+
+		for(i = 0; i < cnt - 2; ++i) {
+			printf("%d. %s \t%s\n", i + 1, infoFiles[i].filename, infoFiles[i].deleteTime);
+		}
+		printf("\n");
+	}
 
 	if (sameNameCnt == 0) {
 		chdir("..");
@@ -736,3 +946,12 @@ void doRecoverCommand(){
 	chdir("..");
 	return;
 }
+
+void alarmHandlercheckFileDeleteTime(){
+	checkFileDeleteTime();
+	if(deleteUsingRFlag) {
+		printf("20160548>");
+		deleteUsingRFlag = 0;
+	}
+}
+
