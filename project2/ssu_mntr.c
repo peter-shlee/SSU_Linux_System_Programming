@@ -90,7 +90,10 @@ int main(void)
 		printf("20160548>");
 		fgets(command_buf, sizeof(command_buf), stdin); // 명령어를 입력받는다
 		sigprocmask(SIG_BLOCK, &sig_set, NULL); // 명령어 수행 도중에는 SIGALRM이 전달돼도 핸들러가 실행되지 않도록 블록한다
-		if(command_buf[0] == '\n') continue;
+		if(command_buf[0] == '\n') {
+			sigprocmask(SIG_UNBLOCK, &sig_set, NULL);
+			continue;
+		}
 		command_buf[strlen(command_buf) - 1] = '\0'; // fgets로 읽어온 문자열 맨 끝의 개행을 지운다
 		command = strtok(command_buf, " "); // 명령어 부분만 분리
 
