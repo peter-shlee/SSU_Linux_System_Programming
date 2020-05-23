@@ -1,0 +1,2 @@
+reading 74 bytes
+nwrite = 74, errno = 0
