@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if ((flags = fcntl(fd, F_GTFL, DUMMY)) == -1) {
+	if ((flags = fcntl(fd, F_GETFL, DUMMY)) == -1) {
 		fprintf(stderr, "fcntl F_GETFL error \n");
 		exit(1);
 	}
