@@ -35,32 +35,32 @@ int main(void)
 }
 
 void set_flags(int fd, int flags){
-	int var;
+	int val;
 
-	if ((var = fcntl(fd, F_GETFL, 0)) < 0) {
+	if ((val = fcntl(fd, F_GETFL, 0)) < 0) {
 		fprintf(stderr, "fcntl F_GETFL failed\n");
 		exit(1);
 	}
 
-	var |= flags;
+	val |= flags;
 
-	if (fcntl(fd, F_SETFL, var) < 0) {
+	if (fcntl(fd, F_SETFL, val) < 0) {
 		fprintf(stderr, "fcntl F_SETFL failed\n");
 		exit(1);
 	}
 }
 
 void clr_flags(int fd, int flags){
-	int var;
+	int val;
 
-	if ((var = fcntl(fd, F_GETFL, 0)) < 0) {
+	if ((val = fcntl(fd, F_GETFL, 0)) < 0) {
 		fprintf(stderr, "fcntl F_GETFL failed\n");
 		exit(1);
 	}
 
-	var &= ~flags;
+	val &= ~flags;
 
-	if (fcntl(fd, F_SETFL, var) < 0) {
+	if (fcntl(fd, F_SETFL, val) < 0) {
 		fprintf(stderr, "fcntl F_SETFL failed\n");
 		exit(1);
 	}
