@@ -10,6 +10,7 @@ int main(void)
 	int val;
 
 	fd = open("exec_copy.txt", O_CREAT);
-	execl("/home/oslab/loop", "./loop", NULL);
+	//execl("/home/oslab/loop", "./loop", NULL);
+	execl("/home/shlee/loop", "./loop", NULL);
 	exit(0);
 }
