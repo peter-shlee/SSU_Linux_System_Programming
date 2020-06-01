@@ -1,0 +1,14 @@
+[Tue Jun  2 08:22:56 2020
+] remove * * * * * echo "echo every minute" > echomsg.txt
+[Tue Jun  2 08:23:09 2020
+] add 1 1 1 1 1 helloworld
+[Tue Jun  2 08:23:23 2020
+] remove * * * * * echo "echo every minute" > echomsg.txt
+[Tue Jun  2 08:34:58 2020] add 1 1 1 1 1 helloworld
+[Tue Jun  2 08:36:21 2020] remove * * * * * echo "echo every minute" > echomsg.txt
+[Tue Jun  2 08:36:29 2020] add 1 2 3 4 5 abcde
+[Tue Jun  2 08:36:34 2020] remove 1 2 3 4 5 abcde
+[Tue Jun  2 08:36:38 2020] remove 1 1 1 1 1 helloworld
+[Tue Jun  2 08:36:54 2020] add 1 2 3 4 5 slfhlkahfl
+[Tue Jun  2 08:37:09 2020] add * * * * * echo "hello world"
+[Tue Jun  2 08:37:12 2020] remove 1 2 3 4 5 slfhlkahfl
