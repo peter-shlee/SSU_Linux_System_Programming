@@ -19,3 +19,7 @@
 [Tue Jun  2 21:26:01 2020] remove 0 0 0 0 0 test2
 [Tue Jun  2 21:26:04 2020] remove 4-5 1 1 1 1 testtest
 [Tue Jun  2 21:26:08 2020] remove 0 0,12 */2 * * test3
+[Tue Jun  2 23:56:21 2020] add 1 1,2,3 1 1 1 test
+[Tue Jun  2 23:56:41 2020] add 1-2,3 2-2,3-3,1,2 3 3 3 test
+[Tue Jun  2 23:56:45 2020] remove 1 1,2,3 1 1 1 test
+[Tue Jun  2 23:56:47 2020] remove 1-2,3 2-2,3-3,1,2 3 3 3 test

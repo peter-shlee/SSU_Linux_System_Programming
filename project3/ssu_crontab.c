@@ -188,6 +188,7 @@ int checkValidCommand(const char *input_command) {
 		if (!checkValidRunCycle(next_lexeme)) return 0;
 
 		++lexeme_count;
+		printf("lexeme complete\n");
 	} while ((next_lexeme = strtok(NULL, " ")) != NULL);
 
 	return 1;
@@ -245,7 +246,7 @@ int checkSlashCommand(char *lexeme){
 		++ptr2;
 		if ((strstr(ptr2, "/")) != NULL) return 0; // '/'문자가 여러개 있다면 잘못 된 실행 주기
 
-		return checkMinusCommand(ptr1) && checkMinusCommand(ptr1);
+		return checkMinusCommand(ptr1) * checkMinusCommand(ptr2);
 	}
 }
 
@@ -266,7 +267,7 @@ int checkMinusCommand(char *lexeme){
 		++ptr2;
 		if ((strstr(ptr2, "-")) != NULL) return 0; // '-'문자가 여러개 있다면 잘못 된 실행 주기
 
-		return checkNumberAndStarCommand(ptr1) && checkNumberAndStarCommand(ptr1);
+		return checkNumberAndStarCommand(ptr1) * checkNumberAndStarCommand(ptr2);
 	}
 }
 
@@ -277,9 +278,11 @@ int checkNumberAndStarCommand(char *lexeme){
 
 	if (!strcmp(lexeme, "*")) return 1;
 
+	printf("%s\n", lexeme);
 	for (i = 0; i < strlen(lexeme); ++i) {
 		if (!isdigit(lexeme[i])) return 0;
 	}
+	printf("check number end\n");//////////////////////////
 	return 1;
 }
 
@@ -287,6 +290,8 @@ char *commaStrtok(char *start) {
 	static char *next_start;
 	char *prev_start;
 	int i;
+
+	printf("commastrtok start\n");///////////////////
 
 	if (start != NULL) {
 		next_start = start;
@@ -303,10 +308,14 @@ char *commaStrtok(char *start) {
 
 	if (i < strlen(next_start)) {
 		start[i] = '\0';
-		next_start = next_start + i + 1;
+		if (i + 1 < strlen(next_start)) 
+			next_start = next_start + i + 1;
+		else next_start = NULL;
 	} else {
 		next_start = NULL;
 	}
+
+	printf("commastrtok end\n"); ////////////////////
 
 	return prev_start;
 }
