@@ -1,3 +1,4 @@
 * * * * * echo "echo every minute" > echomsg.txt
 * * * * * echo "echo every minute" > echomsg.txt
 * * * * * echo "hello world"
+* * * * * test

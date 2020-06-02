@@ -20,6 +20,13 @@ void getCrontabCommands(void);
 void doAddCommand(char *input_command);
 void doRemoveCommand(void);
 int checkValidCommand(const char *input_command);
+int checkIncludeValidCharactersOnly(const char *lexeme);
+int checkValidRunCycle(char *lexeme);
+int checkCommaCommand(char *lexeme);
+int checkSlashCommand(char *lexeme);
+int checkMinusCommand(char *lexeme);
+int checkNumberAndStarCommand(char *lexeme);
+char *commaStrtok(char *start);
 
 int main(void)
 {
@@ -169,5 +176,137 @@ void doRemoveCommand(void){
 }
 
 int checkValidCommand(const char *input_command) {
+	char *next_lexeme;
+	char copied_input_command[BUFFER_SIZE];
+	int lexeme_count = 0;
+	strcpy(copied_input_command, input_command);
+	
+	next_lexeme = strtok(copied_input_command, " ");
+	do {
+		if (lexeme_count == 5) break;
+		if (!checkIncludeValidCharactersOnly(next_lexeme)) return 0;
+		if (!checkValidRunCycle(next_lexeme)) return 0;
+
+		++lexeme_count;
+	} while ((next_lexeme = strtok(NULL, " ")) != NULL);
+
 	return 1;
+}
+
+int checkIncludeValidCharactersOnly(const char *lexeme) {
+	int i;
+	for (i = 0; i < strlen(lexeme); ++i) {
+		if (lexeme[i] == '*' || lexeme[i] == '-'|| lexeme[i] == ','|| lexeme[i] == '/' || (0 <= lexeme[i] && lexeme[i] <= '9')) continue;
+		else return 0;
+	}
+
+	return 1;
+}
+
+int checkValidRunCycle(char *lexeme) {
+	printf("check valid runcycle %s\n", lexeme); ///////////////////////
+	checkCommaCommand(lexeme);
+}
+
+int checkCommaCommand(char *lexeme){
+	char *ptr;
+
+	printf("check comma command %s\n", lexeme); /////////////////////////
+
+	if (strstr(lexeme, ",") == NULL) {
+		return checkSlashCommand(lexeme);
+	} else {
+		if (lexeme[0] == ',') return 0; // 맨 앞 문자가 콤마이면 잘못 된 실행 주기
+		if (lexeme[strlen(lexeme) - 1] == ',') return 0; // 맨 마지막 문자가 콤마이면 잘못 된 실행 주기
+
+		ptr = commaStrtok(lexeme);
+		do {
+			if (!checkSlashCommand(ptr)) return 0;
+		} while ((ptr = commaStrtok(NULL)) != NULL);
+
+		return 1;
+	}
+}
+
+int checkSlashCommand(char *lexeme){
+	char *ptr1;
+	char *ptr2;
+
+	printf("check slash command %s\n", lexeme); ///////////////////////
+
+	if ((ptr2 = strstr(lexeme, "/")) == NULL) {
+		return checkMinusCommand(lexeme);
+	} else {
+		if (lexeme[0] == '/') return 0; // 맨 앞 문자가 슬래쉬이면 잘못 된 실행 주기
+		if (lexeme[strlen(lexeme) - 1] == '/') return 0; // 맨 마지막 문자가 슬래쉬이면 잘못 된 실행 주기
+
+		ptr1 = lexeme;
+		*ptr2 = '\0';
+		++ptr2;
+		if ((strstr(ptr2, "/")) != NULL) return 0; // '/'문자가 여러개 있다면 잘못 된 실행 주기
+
+		return checkMinusCommand(ptr1) && checkMinusCommand(ptr1);
+	}
+}
+
+int checkMinusCommand(char *lexeme){
+	char *ptr1;
+	char *ptr2;
+
+	printf("check minue command %s\n", lexeme); ///////////////////////
+
+	if ((ptr2 = strstr(lexeme, "-")) == NULL) {
+		return checkNumberAndStarCommand(lexeme);
+	} else {
+		if (lexeme[0] == '-') return 0; // 맨 앞 문자가 '-'이면 잘못 된 실행 주기
+		if (lexeme[strlen(lexeme) - 1] == '-') return 0; // 맨 마지막 문자가 '-'이면 잘못 된 실행 주기
+
+		ptr1 = lexeme;
+		*ptr2 = '\0';
+		++ptr2;
+		if ((strstr(ptr2, "-")) != NULL) return 0; // '-'문자가 여러개 있다면 잘못 된 실행 주기
+
+		return checkNumberAndStarCommand(ptr1) && checkNumberAndStarCommand(ptr1);
+	}
+}
+
+int checkNumberAndStarCommand(char *lexeme){
+	int i;
+
+	printf("check number and star command %s\n", lexeme); ///////////////////////
+
+	if (!strcmp(lexeme, "*")) return 1;
+
+	for (i = 0; i < strlen(lexeme); ++i) {
+		if (!isdigit(lexeme[i])) return 0;
+	}
+	return 1;
+}
+
+char *commaStrtok(char *start) {
+	static char *next_start;
+	char *prev_start;
+	int i;
+
+	if (start != NULL) {
+		next_start = start;
+		prev_start = start;
+	} else {
+		prev_start = next_start;
+	}
+
+	if (next_start == NULL) return NULL;
+
+	for(i = 0; i < strlen(next_start); ++i) {
+		if (next_start[i] == ',') break;
+	}
+
+	if (i < strlen(next_start)) {
+		start[i] = '\0';
+		next_start = next_start + i + 1;
+	} else {
+		next_start = NULL;
+	}
+
+	return prev_start;
 }
