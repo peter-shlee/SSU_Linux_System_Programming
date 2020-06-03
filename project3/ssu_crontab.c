@@ -205,14 +205,14 @@ int checkIncludeValidCharactersOnly(const char *lexeme) {
 }
 
 int checkValidRunCycle(char *lexeme) {
-	printf("check valid runcycle %s\n", lexeme); ///////////////////////
+	//printf("check valid runcycle %s\n", lexeme); ///////////////////////
 	checkCommaCommand(lexeme);
 }
 
 int checkCommaCommand(char *lexeme){
 	char *ptr;
 
-	printf("check comma command %s\n", lexeme); /////////////////////////
+	//printf("check comma command %s\n", lexeme); /////////////////////////
 
 	if (strstr(lexeme, ",") == NULL) {
 		return checkSlashCommand(lexeme);
@@ -233,7 +233,7 @@ int checkSlashCommand(char *lexeme){
 	char *ptr1;
 	char *ptr2;
 
-	printf("check slash command %s\n", lexeme); ///////////////////////
+	//printf("check slash command %s\n", lexeme); ///////////////////////
 
 	if ((ptr2 = strstr(lexeme, "/")) == NULL) {
 		return checkMinusCommand(lexeme);
@@ -253,8 +253,9 @@ int checkSlashCommand(char *lexeme){
 int checkMinusCommand(char *lexeme){
 	char *ptr1;
 	char *ptr2;
+	int checkNumAndStarResult;
 
-	printf("check minue command %s\n", lexeme); ///////////////////////
+	//printf("check minue command %s\n", lexeme); ///////////////////////
 
 	if ((ptr2 = strstr(lexeme, "-")) == NULL) {
 		return checkNumberAndStarCommand(lexeme);
@@ -267,22 +268,25 @@ int checkMinusCommand(char *lexeme){
 		++ptr2;
 		if ((strstr(ptr2, "-")) != NULL) return 0; // '-'문자가 여러개 있다면 잘못 된 실행 주기
 
-		return checkNumberAndStarCommand(ptr1) * checkNumberAndStarCommand(ptr2);
+		// '-' 앞 뒤가 모두 숫자여야 유효한 실행 주기이다. 둘중 하나라도 '*'이면 안됨
+		checkNumAndStarResult = checkNumberAndStarCommand(ptr1) * checkNumberAndStarCommand(ptr2); 
+		if (checkNumAndStarResult == 1) return 1;
+		else return 0;
 	}
 }
 
 int checkNumberAndStarCommand(char *lexeme){
 	int i;
 
-	printf("check number and star command %s\n", lexeme); ///////////////////////
+	//printf("check number and star command %s\n", lexeme); ///////////////////////
 
-	if (!strcmp(lexeme, "*")) return 1;
+	if (!strcmp(lexeme, "*")) return 2; // '-' 앞뒤로 '*'가 오면 안되기 때문에, '-'에서 '*'가 있는지 판단하기 위해 '*'인 경우에는 2를 리턴한다.
 
 	printf("%s\n", lexeme);
 	for (i = 0; i < strlen(lexeme); ++i) {
 		if (!isdigit(lexeme[i])) return 0;
 	}
-	printf("check number end\n");//////////////////////////
+	//printf("check number end\n");//////////////////////////
 	return 1;
 }
 
@@ -290,8 +294,9 @@ char *commaStrtok(char *start) {
 	static char *next_start;
 	char *prev_start;
 	int i;
+	int length;
 
-	printf("commastrtok start\n");///////////////////
+	//printf("commastrtok start\n");///////////////////
 
 	if (start != NULL) {
 		next_start = start;
@@ -302,20 +307,21 @@ char *commaStrtok(char *start) {
 
 	if (next_start == NULL) return NULL;
 
-	for(i = 0; i < strlen(next_start); ++i) {
+	length = strlen(next_start);
+	for(i = 0; i < length; ++i) {
 		if (next_start[i] == ',') break;
 	}
 
-	if (i < strlen(next_start)) {
-		start[i] = '\0';
-		if (i + 1 < strlen(next_start)) 
+	if (i < length) {
+		next_start[i] = '\0';
+		if (i + 1 < length) 
 			next_start = next_start + i + 1;
 		else next_start = NULL;
 	} else {
 		next_start = NULL;
 	}
 
-	printf("commastrtok end\n"); ////////////////////
+	//printf("commastrtok end\n"); ////////////////////
 
 	return prev_start;
 }
