@@ -23,3 +23,14 @@
 [Tue Jun  2 23:56:41 2020] add 1-2,3 2-2,3-3,1,2 3 3 3 test
 [Tue Jun  2 23:56:45 2020] remove 1 1,2,3 1 1 1 test
 [Tue Jun  2 23:56:47 2020] remove 1-2,3 2-2,3-3,1,2 3 3 3 test
+[Thu Jun  4 21:07:12 2020] add 1 1-2,3-4,5 * * 1/2 test
+[Thu Jun  4 21:10:18 2020] add 1 1-2 33 3/2 5 test
+[Thu Jun  4 22:52:11 2020] add 1 1 */2 3 3 test
+[Thu Jun  4 22:54:38 2020] add 1/1 2 2 2 2 test
+[Thu Jun  4 22:57:15 2020] remove 1/1 2 2 2 2 test
+[Thu Jun  4 22:57:44 2020] add 1 1-2,3-4,5 * * 2-4/2 test
+[Thu Jun  4 23:29:13 2020] add 20-40 23 4 6 * test
+[Thu Jun  4 23:30:07 2020] add * 22-4/2 4 6 4 test
+[Thu Jun  4 23:30:36 2020] add * 21-24/2 4 6 4 test
+[Thu Jun  4 23:31:28 2020] add * 21-23/2 4 6 4 test
+[Thu Jun  4 23:31:30 2020] remove * 21-24/2 4 6 4 test

@@ -5,6 +5,10 @@
 #include <time.h>
 #include <ctype.h>
 
+
+/////////////////////////////////////// 숫자 범위 벗어나는 경우 입력 안되도록
+
+
 #define BUFFER_SIZE 1024
 #define MAX_COMMAND_COUNT 100
 
@@ -188,7 +192,7 @@ int checkValidCommand(const char *input_command) {
 		if (!checkValidRunCycle(next_lexeme)) return 0;
 
 		++lexeme_count;
-		printf("lexeme complete\n");
+		//printf("lexeme complete\n");
 	} while ((next_lexeme = strtok(NULL, " ")) != NULL);
 
 	return 1;
@@ -232,6 +236,8 @@ int checkCommaCommand(char *lexeme){
 int checkSlashCommand(char *lexeme){
 	char *ptr1;
 	char *ptr2;
+	int checkMinusCommandResult1;
+	int checkMinusCommandResult2;
 
 	//printf("check slash command %s\n", lexeme); ///////////////////////
 
@@ -245,8 +251,15 @@ int checkSlashCommand(char *lexeme){
 		*ptr2 = '\0';
 		++ptr2;
 		if ((strstr(ptr2, "/")) != NULL) return 0; // '/'문자가 여러개 있다면 잘못 된 실행 주기
+		
+		// '/' 뒤에는 숫자만 올 수 있다. checkMinusCommandResult2가 1이 아니라면 숫자가 아니란 뜻이므로 유효하지 않은 실행 주기이다.
+		checkMinusCommandResult1 = checkMinusCommand(ptr1); 
+		checkMinusCommandResult2 = checkMinusCommand(ptr2);
+		if (checkMinusCommandResult1 == 1) return 0; // '/'문자 앞에는 '*' 또는 '/'를 이용한 범위가 와야 한다.
+		if (checkMinusCommandResult2 != 1) return 0;
 
-		return checkMinusCommand(ptr1) * checkMinusCommand(ptr2);
+		if (checkMinusCommandResult1 * checkMinusCommandResult2) return 1; 
+		else return 0;
 	}
 }
 
@@ -270,7 +283,7 @@ int checkMinusCommand(char *lexeme){
 
 		// '-' 앞 뒤가 모두 숫자여야 유효한 실행 주기이다. 둘중 하나라도 '*'이면 안됨
 		checkNumAndStarResult = checkNumberAndStarCommand(ptr1) * checkNumberAndStarCommand(ptr2); 
-		if (checkNumAndStarResult == 1) return 1;
+		if (checkNumAndStarResult == 1) return 3; // '/' 뒤에는 숫자만 올 수 있다. 이를 구분하기 위해 3을 리턴한다
 		else return 0;
 	}
 }
@@ -282,7 +295,7 @@ int checkNumberAndStarCommand(char *lexeme){
 
 	if (!strcmp(lexeme, "*")) return 2; // '-' 앞뒤로 '*'가 오면 안되기 때문에, '-'에서 '*'가 있는지 판단하기 위해 '*'인 경우에는 2를 리턴한다.
 
-	printf("%s\n", lexeme);
+	//printf("%s\n", lexeme);
 	for (i = 0; i < strlen(lexeme); ++i) {
 		if (!isdigit(lexeme[i])) return 0;
 	}
