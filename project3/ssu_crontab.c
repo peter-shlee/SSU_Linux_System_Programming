@@ -4,10 +4,11 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <fcntl.h>
 
 
 /////////////////////////////////////// 숫자 범위 벗어나는 경우 입력 안되도록
-
+enum {MIN, HOUR, DAY, MON, WDAY};
 
 #define BUFFER_SIZE 1024
 #define MAX_COMMAND_COUNT 100
@@ -25,11 +26,11 @@ void doAddCommand(char *input_command);
 void doRemoveCommand(void);
 int checkValidCommand(const char *input_command);
 int checkIncludeValidCharactersOnly(const char *lexeme);
-int checkValidRunCycle(char *lexeme);
-int checkCommaCommand(char *lexeme);
-int checkSlashCommand(char *lexeme);
-int checkMinusCommand(char *lexeme);
-int checkNumberAndStarCommand(char *lexeme);
+int checkValidRunCycle(char *lexeme, int run_cycle_index);
+int checkCommaCommand(char *lexeme, int run_cycle_index);
+int checkSlashCommand(char *lexeme, int run_cycle_index);
+int checkMinusCommand(char *lexeme, int run_cycle_index);
+int checkNumberAndStarCommand(char *lexeme, int run_cycle_index);
 char *commaStrtok(char *start);
 
 int main(void)
@@ -38,7 +39,7 @@ int main(void)
 	char *input_command;
 
 	if (access(CRONTAB_FILE_NAME, F_OK) < 0) {
-		fclose(fopen(CRONTAB_FILE_NAME, "w"));
+		close(open(CRONTAB_FILE_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0666));
 	}
 
 	getCrontabCommands();
@@ -189,7 +190,7 @@ int checkValidCommand(const char *input_command) {
 	do {
 		if (lexeme_count == 5) break;
 		if (!checkIncludeValidCharactersOnly(next_lexeme)) return 0;
-		if (!checkValidRunCycle(next_lexeme)) return 0;
+		if (!checkValidRunCycle(next_lexeme, lexeme_count)) return 0;
 
 		++lexeme_count;
 		//printf("lexeme complete\n");
@@ -208,32 +209,32 @@ int checkIncludeValidCharactersOnly(const char *lexeme) {
 	return 1;
 }
 
-int checkValidRunCycle(char *lexeme) {
+int checkValidRunCycle(char *lexeme, int run_cycle_index) {
 	//printf("check valid runcycle %s\n", lexeme); ///////////////////////
-	checkCommaCommand(lexeme);
+	checkCommaCommand(lexeme, run_cycle_index);
 }
 
-int checkCommaCommand(char *lexeme){
+int checkCommaCommand(char *lexeme, int run_cycle_index){
 	char *ptr;
 
 	//printf("check comma command %s\n", lexeme); /////////////////////////
 
 	if (strstr(lexeme, ",") == NULL) {
-		return checkSlashCommand(lexeme);
+		return checkSlashCommand(lexeme, run_cycle_index);
 	} else {
 		if (lexeme[0] == ',') return 0; // 맨 앞 문자가 콤마이면 잘못 된 실행 주기
 		if (lexeme[strlen(lexeme) - 1] == ',') return 0; // 맨 마지막 문자가 콤마이면 잘못 된 실행 주기
 
 		ptr = commaStrtok(lexeme);
 		do {
-			if (!checkSlashCommand(ptr)) return 0;
+			if (!checkSlashCommand(ptr, run_cycle_index)) return 0;
 		} while ((ptr = commaStrtok(NULL)) != NULL);
 
 		return 1;
 	}
 }
 
-int checkSlashCommand(char *lexeme){
+int checkSlashCommand(char *lexeme, int run_cycle_index){
 	char *ptr1;
 	char *ptr2;
 	int checkMinusCommandResult1;
@@ -242,7 +243,7 @@ int checkSlashCommand(char *lexeme){
 	//printf("check slash command %s\n", lexeme); ///////////////////////
 
 	if ((ptr2 = strstr(lexeme, "/")) == NULL) {
-		return checkMinusCommand(lexeme);
+		return checkMinusCommand(lexeme, run_cycle_index);
 	} else {
 		if (lexeme[0] == '/') return 0; // 맨 앞 문자가 슬래쉬이면 잘못 된 실행 주기
 		if (lexeme[strlen(lexeme) - 1] == '/') return 0; // 맨 마지막 문자가 슬래쉬이면 잘못 된 실행 주기
@@ -253,8 +254,8 @@ int checkSlashCommand(char *lexeme){
 		if ((strstr(ptr2, "/")) != NULL) return 0; // '/'문자가 여러개 있다면 잘못 된 실행 주기
 		
 		// '/' 뒤에는 숫자만 올 수 있다. checkMinusCommandResult2가 1이 아니라면 숫자가 아니란 뜻이므로 유효하지 않은 실행 주기이다.
-		checkMinusCommandResult1 = checkMinusCommand(ptr1); 
-		checkMinusCommandResult2 = checkMinusCommand(ptr2);
+		checkMinusCommandResult1 = checkMinusCommand(ptr1, run_cycle_index); 
+		checkMinusCommandResult2 = checkMinusCommand(ptr2, run_cycle_index);
 		if (checkMinusCommandResult1 == 1) return 0; // '/'문자 앞에는 '*' 또는 '/'를 이용한 범위가 와야 한다.
 		if (checkMinusCommandResult2 != 1) return 0;
 
@@ -263,7 +264,7 @@ int checkSlashCommand(char *lexeme){
 	}
 }
 
-int checkMinusCommand(char *lexeme){
+int checkMinusCommand(char *lexeme, int run_cycle_index){
 	char *ptr1;
 	char *ptr2;
 	int checkNumAndStarResult;
@@ -271,7 +272,7 @@ int checkMinusCommand(char *lexeme){
 	//printf("check minue command %s\n", lexeme); ///////////////////////
 
 	if ((ptr2 = strstr(lexeme, "-")) == NULL) {
-		return checkNumberAndStarCommand(lexeme);
+		return checkNumberAndStarCommand(lexeme, run_cycle_index);
 	} else {
 		if (lexeme[0] == '-') return 0; // 맨 앞 문자가 '-'이면 잘못 된 실행 주기
 		if (lexeme[strlen(lexeme) - 1] == '-') return 0; // 맨 마지막 문자가 '-'이면 잘못 된 실행 주기
@@ -282,14 +283,15 @@ int checkMinusCommand(char *lexeme){
 		if ((strstr(ptr2, "-")) != NULL) return 0; // '-'문자가 여러개 있다면 잘못 된 실행 주기
 
 		// '-' 앞 뒤가 모두 숫자여야 유효한 실행 주기이다. 둘중 하나라도 '*'이면 안됨
-		checkNumAndStarResult = checkNumberAndStarCommand(ptr1) * checkNumberAndStarCommand(ptr2); 
+		checkNumAndStarResult = checkNumberAndStarCommand(ptr1, run_cycle_index) * checkNumberAndStarCommand(ptr2, run_cycle_index); 
 		if (checkNumAndStarResult == 1) return 3; // '/' 뒤에는 숫자만 올 수 있다. 이를 구분하기 위해 3을 리턴한다
 		else return 0;
 	}
 }
 
-int checkNumberAndStarCommand(char *lexeme){
+int checkNumberAndStarCommand(char *lexeme, int run_cycle_index){
 	int i;
+	int num;
 
 	//printf("check number and star command %s\n", lexeme); ///////////////////////
 
@@ -298,6 +300,27 @@ int checkNumberAndStarCommand(char *lexeme){
 	//printf("%s\n", lexeme);
 	for (i = 0; i < strlen(lexeme); ++i) {
 		if (!isdigit(lexeme[i])) return 0;
+	}
+
+	num = atoi(lexeme);
+	switch(run_cycle_index) {
+		case MIN: // 분 (0~59)
+			if (num < 0 || num > 59) return 0;
+			break;
+		case HOUR: // 시 (0~23)
+			if (num < 0 || num > 23) return 0;
+			break;
+		case DAY: // 일 (0~31)
+			if (num < 0 || num > 31) return 0;
+			break;
+		case MON: // 월 (1~12)
+			if (num < 1 || num > 12) return 0;
+			break;
+		case WDAY: // 요일 (0~6) (일요일부터 시작)
+			if (num < 0 || num > 6) return 0;
+			break;
+		default:
+			return 0;
 	}
 	//printf("check number end\n");//////////////////////////
 	return 1;

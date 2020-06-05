@@ -1,0 +1,1 @@
+echo evry 7 minutes at 10pm, 1am, 2am

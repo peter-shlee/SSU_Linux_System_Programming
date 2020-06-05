@@ -4,6 +4,10 @@
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define BUFFER_SIZE 1024
 #define MAX_COMMAND_COUNT 100
@@ -12,8 +16,12 @@
 const char *CRONTAB_FILE_NAME = "ssu_crontab_file";
 const char *LOG_FILE_NAME = "ssu_crontab_log";
 
-enum {MIN, HOUR, DAY, MON, YEAR};
+enum {MIN, HOUR, DAY, MON, WDAY};
 
+void startCrond();
+int ssu_daemon_init(const char *path);
+
+void checkRunCommand();
 int checkValidCommand(const char *input_command);
 int checkRunCycle(char *run_cycle, int run_cycle_index, int current_time);
 int checkCommaCommand(char *lexeme, int run_cycle_index, int current_time);
@@ -24,19 +32,106 @@ char *commaStrtok(char *start);
 
 int main(void)
 {
-	FILE *fp;
+	//checkRunCommand(); // 디버깅용
+	startCrond();
+
+	exit(0);
+}
+
+void startCrond(){
+	pid_t pid;
+	if ((pid = fork()) == 0) { // 자식 프로세스 생성, 자식 프로세스라면
+		char path[PATH_MAX];
+		getcwd(path, PATH_MAX); // 현재 경로 구한다
+		ssu_daemon_init(path); // 디몬 프로세스 실행
+	} else if (pid < 0) { // fork 에러라면
+		fprintf(stderr, "mntr starting error\n");
+		exit(1);
+	} else { // 부모 프로세스라면
+		return;
+	}
+}
+
+int ssu_daemon_init(const char *path) { // 디몬 프로세스 시작하는 함수
+	pid_t pid;
+	int fd, maxfd;
+	time_t current_time;
+	struct tm *current_tm;
+	int prev_minute;
+
+	struct FileData *prevFileData;
+	struct FileData *curFileData;
+
+	if ((pid = fork()) < 0) {
+		fprintf(stderr, "fork error\n");
+		exit(1);
+	}
+	else if (pid != 0)
+		exit(0);
+
+	pid = getpid();
+	//printf("process %d running as daemon\n", pid);
+	setsid();
+	signal(SIGTTIN, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	maxfd = getdtablesize();
+
+	for (fd = 0; fd < maxfd; fd++)
+		close(fd);
+
+	umask(0);
+	chdir(path);
+	fd = open("/dev/null", O_RDWR);
+	dup(0);
+	dup(0);
+
+	if (access(CRONTAB_FILE_NAME, F_OK) < 0) {
+		close(open(CRONTAB_FILE_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0666));
+	}
+
+	if (access(LOG_FILE_NAME, F_OK) < 0) {
+		close(open(LOG_FILE_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0666));
+	}
+
+	prev_minute = -1;
+	while(1) {
+		current_time = time(NULL);
+		current_tm = localtime(&current_time);
+
+		if (prev_minute != current_tm->tm_min) {
+			prev_minute = current_tm->tm_min;
+			checkRunCommand();
+		}
+
+		sleep(10);
+	}
+
+	return 0;
+}
+
+void checkRunCommand() {
+	FILE *command_fp;
+	FILE *log_fp;
 	char buf[BUFFER_SIZE];
 	char run_cycle[BUFFER_SIZE];
 	char command[BUFFER_SIZE];
 	int i, j;
+	time_t current_time;
+	char *time_str;
 
-	if ((fp = fopen(CRONTAB_FILE_NAME, "r")) == NULL) {
+	if ((command_fp = fopen(CRONTAB_FILE_NAME, "r")) == NULL) {
 		fprintf(stderr, "fopen error for %s\n", CRONTAB_FILE_NAME);
 		exit(1);
 	}
 
-	while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
-		if (feof(fp)) break;
+	if ((log_fp = fopen(LOG_FILE_NAME , "a")) == NULL) {
+		fprintf(stderr, "fopen error for %s\n", LOG_FILE_NAME );
+		exit(1);
+	}
+	
+	while (fgets(buf, BUFFER_SIZE, command_fp) != NULL) {
+		if (feof(command_fp)) break;
 
 		if (strlen(buf) - 1 >= 0) buf[strlen(buf) - 1] = '\0';
 
@@ -49,20 +144,18 @@ int main(void)
 		while(buf[j] == ' ') ++j;
 		strcpy(command, buf + j);
 
-		printf("run_cycle = %s|\n", run_cycle);
-		printf("command = %s|\n", command);
+		if (checkValidCommand(run_cycle)) {
+			system(command);
 
-		if (checkValidCommand(run_cycle))
-			printf("execute\n");
-		else
-			printf("no execute\n");
-		printf("\n\n");
-
+			current_time = time(NULL);
+			time_str = ctime(&current_time);
+			time_str[strlen(time_str) -1] = '\0';
+			fprintf(log_fp, "[%s] run %s\n", time_str, command);
+		}
 	}
 
-	fclose(fp);
-
-	exit(0);
+	fclose(command_fp);
+	fclose(log_fp);
 }
 
 int checkValidCommand(const char *input_command) {
@@ -96,8 +189,8 @@ int checkValidCommand(const char *input_command) {
 			case MON: // 월 (1~12)
 				if (!checkRunCycle(next_lexeme, MON, current_tm->tm_mon + 1)) return 0; // 실행 x 인 경우 바로 리턴
 				break;
-			case YEAR: // 요일 (0~6) (일요일부터 시작)
-				if (!checkRunCycle(next_lexeme, YEAR, current_tm->tm_wday)) return 0; // 실행 x 인 경우 바로 리턴
+			case WDAY: // 요일 (0~6) (일요일부터 시작)
+				if (!checkRunCycle(next_lexeme, WDAY, current_tm->tm_wday)) return 0; // 실행 x 인 경우 바로 리턴
 				break;
 			default:
 				return 0;
@@ -121,15 +214,12 @@ int checkCommaCommand(char *lexeme, int run_cycle_index, int current_time){
 	if (strstr(lexeme, ",") == NULL) {
 		return checkSlashCommand(lexeme, run_cycle_index, current_time);
 	} else {
-		if (lexeme[0] == ',') return 0; // 맨 앞 문자가 콤마이면 잘못 된 실행 주기
-		if (lexeme[strlen(lexeme) - 1] == ',') return 0; // 맨 마지막 문자가 콤마이면 잘못 된 실행 주기
-
 		ptr = commaStrtok(lexeme);
 		do {
-			if (!checkSlashCommand(ptr, run_cycle_index, current_time)) return 0;
+			if (checkSlashCommand(ptr, run_cycle_index, current_time)) return 1;
 		} while ((ptr = commaStrtok(NULL)) != NULL);
 
-		return 1;
+		return 0;
 	}
 }
 
@@ -167,7 +257,7 @@ int checkSlashCommand(char *lexeme, int run_cycle_index, int current_time){
 				case MON: // 월 (1~12)
 					strcpy(ptr1, "1-12");
 					break;
-				case YEAR: // 요일 (0~6) (일요일부터 시작)
+				case WDAY: // 요일 (0~6) (일요일부터 시작)
 					strcpy(ptr1, "0-6");
 					break;
 				default:
@@ -175,7 +265,7 @@ int checkSlashCommand(char *lexeme, int run_cycle_index, int current_time){
 			}
 		}
 
-		result = checkMinusCommand(lexeme, run_cycle_index, current_time, increase);
+		result = checkMinusCommand(ptr1, run_cycle_index, current_time, increase);
 		if (malloc_flag) free(ptr1);
 
 		if (result) return 1;
@@ -217,7 +307,7 @@ int checkMinusCommand(char *lexeme, int run_cycle_index, int current_time, int i
 			case MON: // 월 (1~12)
 				max_value = 12;
 				break;
-			case YEAR: // 요일 (0~6) (일요일부터 시작)
+			case WDAY: // 요일 (0~6) (일요일부터 시작)
 				max_value = 6;
 				break;
 			default:
