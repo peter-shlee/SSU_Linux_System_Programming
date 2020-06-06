@@ -1,0 +1,4 @@
+* * * * * echo "echo every minute" > echomsg.txt
+*/5 * * * * echo "echo every 5 minute" > echomsg.txt
+0-50/10 23-1 * * * echo "echo every 10 minute between 23h ~ 1h" > echomsg.txt
+*/7 10,1,2 * * * echo "echo evry 7 minutes at 10pm, 1am, 2am" > echomsg.txt
