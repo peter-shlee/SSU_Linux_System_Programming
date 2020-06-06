@@ -1,7 +1,0 @@
-aaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaa

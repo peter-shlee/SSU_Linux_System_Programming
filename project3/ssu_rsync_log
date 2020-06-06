@@ -1,0 +1,95 @@
+[Sat Jun  6 21:48:31 2020] ssu_rsync -m echomsg.txt dst
+	 18bytes
+	ssu_mntr.c delete
+	monitor.c delete
+	log.txt delete
+	ssu_mntr.o delete
+	ssu_mntr delete
+	Makefile delete
+	monitor.o delete
+[Sat Jun  6 21:50:52 2020] ssu_rsync -m echomsg.txt dst
+	echomsg.txt 18bytes
+[Sat Jun  6 21:51:16 2020] ssu_rsync  ../project2 dst
+	ssu_mntr.c 40282bytes
+	monitor.c 10147bytes
+	log.txt 229bytes
+	trash 4096bytes
+	ssu_mntr.o 35168bytes
+	check 4096bytes
+	ssu_mntr 36600bytes
+	Makefile 179bytes
+	monitor.o 9136bytes
+[Sat Jun  6 21:51:38 2020] ssu_rsync -r ../project2 dst
+	ssu_mntr.c 40282bytes
+	monitor.c 10147bytes
+	log.txt 229bytes
+	trash/files/2020-05-13 18:54:24_a.c 154bytes
+	trash/info/a.c 111bytes
+	ssu_mntr.o 35168bytes
+	check/dir1/b.c 58bytes
+	check/dir1/dir1-2/helloworld.c 0bytes
+	check/dir1/d.c 15bytes
+	check/dir1/c.c 960bytes
+	check/dir1/e.c 25bytes
+	check/dir3/dir3-2/samename 17bytes
+	check/5 0bytes
+	check/4 0bytes
+	check/2 0bytes
+	check/3 0bytes
+	check/largefile 19760bytes
+	check/1 0bytes
+	ssu_mntr 36600bytes
+	Makefile 179bytes
+	monitor.o 9136bytes
+[Sat Jun  6 21:52:00 2020] ssu_rsync  echomsg.txt dst
+	echomsg.txt 18bytes
+[Sat Jun  6 21:52:30 2020] ssu_rsync -m echomsg.txt dst
+	echomsg.txt 18bytes
+	ssu_mntr.c delete
+	monitor.c delete
+	log.txt delete
+	trash/files/2020-05-13 18:54:24_a.c delete
+	trash/info/a.c delete
+	ssu_mntr.o delete
+	check/dir1/b.c delete
+	check/dir1/dir1-2/helloworld.c delete
+	check/dir1/d.c delete
+	check/dir1/c.c delete
+	check/dir1/e.c delete
+	check/dir3/dir3-2/samename delete
+	check/5 delete
+	check/4 delete
+	check/2 delete
+	check/3 delete
+	check/largefile delete
+	check/1 delete
+	ssu_mntr delete
+	Makefile delete
+	monitor.o delete
+[Sat Jun  6 23:30:58 2020] ssu_rsync -t helloworld dst
+	helloworld 52bytes
+[Sat Jun  6 23:32:01 2020] ssu_rsync  testdir dst
+	hello 6bytes
+	hi 3bytes
+[Sat Jun  6 23:35:11 2020] ssu_rsync -t testdir dst
+	hello 6bytes
+	hi 3bytes
+[Sat Jun  6 23:37:30 2020] ssu_rsync -t testdir dst
+	hello 6bytes
+	hi 3bytes
+[Sat Jun  6 23:39:47 2020] ssu_rsync -t testdir dst
+	hello 6bytes
+	hi 3bytes
+[Sat Jun  6 23:46:05 2020] ssu_rsync -t testdir dst
+	hello 6bytes
+	hi 3bytes
+[Sat Jun  6 23:46:51 2020] ssu_rsync -t ../project2 dst
+	ssu_mntr.c 40282bytes
+	monitor.c 10147bytes
+	log.txt 229bytes
+	trash 4096bytes
+	ssu_mntr.o 35168bytes
+	check 4096bytes
+	ssu_mntr 36600bytes
+	Makefile 179bytes
+	monitor.o 9136bytes
