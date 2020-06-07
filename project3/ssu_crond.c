@@ -119,6 +119,7 @@ void checkRunCommand() {
 	int i, j;
 	time_t current_time;
 	char *time_str;
+	struct flock fl;
 
 	if ((command_fp = fopen(CRONTAB_FILE_NAME, "r")) == NULL) {
 		fprintf(stderr, "fopen error for %s\n", CRONTAB_FILE_NAME);
@@ -127,6 +128,16 @@ void checkRunCommand() {
 
 	if ((log_fp = fopen(LOG_FILE_NAME , "a")) == NULL) {
 		fprintf(stderr, "fopen error for %s\n", LOG_FILE_NAME );
+		exit(1);
+	}
+
+	fl.l_type = F_RDLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+
+	if (fcntl(fileno(command_fp), F_SETLKW, &fl) < 0) {
+		fprintf(stderr, "fcntl error for %s\n", CRONTAB_FILE_NAME);
 		exit(1);
 	}
 	
@@ -152,6 +163,16 @@ void checkRunCommand() {
 			time_str[strlen(time_str) -1] = '\0';
 			fprintf(log_fp, "[%s] run %s\n", time_str, command);
 		}
+	}
+
+	fl.l_type = F_UNLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+
+	if (fcntl(fileno(command_fp), F_SETLKW, &fl) < 0) {
+		fprintf(stderr, "fcntl error for %s\n", CRONTAB_FILE_NAME);
+		exit(1);
 	}
 
 	fclose(command_fp);

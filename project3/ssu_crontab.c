@@ -121,6 +121,7 @@ void doAddCommand(char *input_command){
 	char new_command[BUFFER_SIZE];
 	time_t current_time;
 	char *time_str;
+	struct flock fl;
 
 	// 입력된 명령어의 실행 주기가 유효한지 검사
 	while(*input_command != '\0') ++input_command;
@@ -134,7 +135,28 @@ void doAddCommand(char *input_command){
 		exit(1);
 	}
 
+	fl.l_type = F_WRLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+
+	if (fcntl(fileno(command_fp), F_SETLKW, &fl) < 0) {
+		fprintf(stderr, "fcntl error for %s\n", CRONTAB_FILE_NAME);
+		exit(1);
+	}
+
 	fprintf(command_fp, "%s\n", new_command);
+
+	fl.l_type = F_UNLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+
+	if (fcntl(fileno(command_fp), F_SETLKW, &fl) < 0) {
+		fprintf(stderr, "fcntl error for %s\n", CRONTAB_FILE_NAME);
+		exit(1);
+	}
+
 	fclose(command_fp);
 
 	// 저장 됐으면 로그 남겨야함
@@ -158,6 +180,7 @@ void doRemoveCommand(void){
 	FILE *log_fp;
 	time_t current_time;
 	char *time_str;
+	struct flock fl;
 
 	next_lexeme = strtok(NULL, " "); // 입력된 문자열에서 번호 추출
 	if (next_lexeme == NULL) return; // 입력된 번호가 없다면 프롬프트로 제어가 넘어감
@@ -172,11 +195,32 @@ void doRemoveCommand(void){
 		exit(1);
 	}
 
+	fl.l_type = F_WRLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+
+	if (fcntl(fileno(command_fp), F_SETLKW, &fl) < 0) {
+		fprintf(stderr, "fcntl error for %s\n", CRONTAB_FILE_NAME);
+		exit(1);
+	}
+
 	for (i = 0; i < crontab_commands_count; ++i) {
 		if (i == selected_index) continue;
 
 		fprintf(command_fp, "%s\n", crontab_commands[i]);
 	}
+
+	fl.l_type = F_UNLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+
+	if (fcntl(fileno(command_fp), F_SETLKW, &fl) < 0) {
+		fprintf(stderr, "fcntl error for %s\n", CRONTAB_FILE_NAME);
+		exit(1);
+	}
+
 	fclose(command_fp);
 
 	// 삭제 됐으면 로그 남겨야함
