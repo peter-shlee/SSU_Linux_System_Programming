@@ -163,13 +163,12 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 
 		if(checkSyncTarget(src_relative_path, dst_path_name)){
 			strcat(tar_command, src_relative_path);
-			strcat(tar_command, "> tartmp20160548"); /////////////////////////////////////////////////
+			strcat(tar_command, "> /dev/null"); /////////////////////////////////////////////////
 			system(tar_command);
 			sprintf(tar_command, "tar xvf %s -C %s", TAR_FILE_NAME, dst_path_name);
-			strcat(tar_command, "> tartmp20160548"); //////////////////////////////////////////////////
+			strcat(tar_command, "> /dev/null"); //////////////////////////////////////////////////
 			system(tar_command);
 			unlink(TAR_FILE_NAME);
-			unlink("tartmp20160548");
 			return;
 		} else {
 			return;
@@ -209,13 +208,12 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 	}
 
 	if (do_sync_flag) {
-		strcat(tar_command, "> tartmp20160548"); /////////////////////////////////////////////////
+		strcat(tar_command, "> /dev/null"); /////////////////////////////////////////////////
 		system(tar_command);
 		sprintf(tar_command, "tar xvf %s -C %s", TAR_FILE_NAME, dst_path_name);
-		strcat(tar_command, "> tartmp20160548"); /////////////////////////////////////////////////
+		strcat(tar_command, "> /dev/null"); /////////////////////////////////////////////////
 		system(tar_command);
 		unlink(TAR_FILE_NAME);
-		unlink("tartmp20160548");
 	}
 
 	chdir(current_path);
