@@ -14,6 +14,7 @@
 #define SECOND_TO_MICRO 1000000
 void ssu_runtime(struct timeval *begin_t, struct timeval *end_t);
 struct timeval begin_t, end_t;
+time_t exctime;
 
 #define BUFFER_SIZE 1024
 #define COMMAND_BUFFER_SIZE 4096
@@ -52,6 +53,7 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 	struct sigaction sig_act;
 	sigset_t sig_set;
 	gettimeofday(&begin_t, NULL); // 시작 시간 기록
+	exctime = time(NULL);
 
 	execute_path = getcwd(NULL, 0);
 	umask(0);
@@ -161,10 +163,13 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 
 		if(checkSyncTarget(src_relative_path, dst_path_name)){
 			strcat(tar_command, src_relative_path);
+			strcat(tar_command, "> tartmp20160548"); /////////////////////////////////////////////////
 			system(tar_command);
 			sprintf(tar_command, "tar xvf %s -C %s", TAR_FILE_NAME, dst_path_name);
+			strcat(tar_command, "> tartmp20160548"); //////////////////////////////////////////////////
 			system(tar_command);
 			unlink(TAR_FILE_NAME);
+			unlink("tartmp20160548");
 			return;
 		} else {
 			return;
@@ -204,10 +209,13 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 	}
 
 	if (do_sync_flag) {
+		strcat(tar_command, "> tartmp20160548"); /////////////////////////////////////////////////
 		system(tar_command);
 		sprintf(tar_command, "tar xvf %s -C %s", TAR_FILE_NAME, dst_path_name);
+		strcat(tar_command, "> tartmp20160548"); /////////////////////////////////////////////////
 		system(tar_command);
 		unlink(TAR_FILE_NAME);
+		unlink("tartmp20160548");
 	}
 
 	chdir(current_path);
@@ -242,7 +250,6 @@ void printLog(FILE *tmp_log_fp, const char *src_path_name, int sync_dir_flag){
 
 	fseek(tmp_log_fp, 0, SEEK_SET);
 	while (fgets(tmp_log_buffer, sizeof(tmp_log_buffer), tmp_log_fp) != NULL) {
-		printf("%s", tmp_log_buffer);
 		fprintf(log_fp, "%s", tmp_log_buffer);
 	}
 
@@ -253,8 +260,10 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 	DIR *dp;
 	struct dirent *dirp;
 	struct stat statbuf;
+	struct stat sync_statbuf;
 	char cur_path_buf[PATH_MAX];
 	char next_src_path[PATH_MAX];
+	char dst_path_name[PATH_MAX];
 	const char *src_relative_path;
 	int i;
 
@@ -272,8 +281,24 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 				break;
 			}
 		}
+		
+		// 동기화 된 경우에만 출력///////////////////////////////////////////////////////////
+		//  path_name 을 이용하여 dst 내의 동기화된 파일의 경로를 구하고, 해당 파일의 st_atime을 확인
+		// 동기화 된 파일의 경로 만든다
+		if (dst_path[strlen(dst_path) - 1] == '/') {
+			sprintf(dst_path_name, "%s%s", dst_path, src_relative_path);
+		} else {
+			sprintf(dst_path_name, "%s/%s", dst_path, src_relative_path);
+		}
 
-		fprintf(fp, "\t%s %ldbytes\n", src_relative_path, statbuf.st_size);
+		if (stat(dst_path_name, &sync_statbuf) < 0) {
+			fprintf(stderr, "stat error for %s\n", dst_path_name);
+			exit(1);
+		}
+
+		if (sync_statbuf.st_atime == exctime) {
+			fprintf(fp, "\t%s %ldbytes\n", src_relative_path, statbuf.st_size);
+		}
 
 		return;
 	}
@@ -307,8 +332,23 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 			chdir(dirp->d_name);
 			printFileNameAndSizeAtLogFile(fp, next_src_path, cur_path_buf, sync_dir_flag);
 			chdir("..");
-		} else { // 일반 파일이라면
-			fprintf(fp, "\t%s %ldbytes\n", cur_path_buf, statbuf.st_size);
+		} else if (!S_ISDIR(statbuf.st_mode)) { // 일반 파일이라면
+			// 동기화 된 경우에만 출력///////////////////////////////////////////////////////////
+			if (dst_path[strlen(dst_path) - 1] == '/') {
+				sprintf(dst_path_name, "%s%s", dst_path, cur_path_buf);
+			} else {
+				sprintf(dst_path_name, "%s/%s", dst_path, cur_path_buf);
+			}
+
+			if (stat(dst_path_name, &sync_statbuf) < 0) {
+				fprintf(stderr, "stat error for %s\n", dst_path_name);
+				exit(1);
+			}
+
+			if (sync_statbuf.st_ctime == exctime) {
+				fprintf(fp, "\t%s %ldbytes\n", cur_path_buf, statbuf.st_size);
+			}
+
 		}
 	}
 }
@@ -701,7 +741,7 @@ void copy(const char *src, const char *dst) {
 		raise(SIGINT);
 	}
 
-	utimebuf.actime = statbuf.st_atime;
+	utimebuf.actime = exctime;
 	utimebuf.modtime = statbuf.st_mtime;
 
 	if ((dst_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, statbuf.st_mode)) < 0) {
