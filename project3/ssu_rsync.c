@@ -9,6 +9,11 @@
 #include <signal.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+
+#define SECOND_TO_MICRO 1000000
+void ssu_runtime(struct timeval *begin_t, struct timeval *end_t);
+struct timeval begin_t, end_t;
 
 #define BUFFER_SIZE 1024
 #define COMMAND_BUFFER_SIZE 4096
@@ -46,6 +51,7 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 	FILE *tmp_log_fp;
 	struct sigaction sig_act;
 	sigset_t sig_set;
+	gettimeofday(&begin_t, NULL); // 시작 시간 기록
 
 	execute_path = getcwd(NULL, 0);
 	umask(0);
@@ -72,7 +78,7 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 
 	if ((tmp_log_fp = fopen(TEMP_LOG_FILE, "w+")) == NULL) {
 		fprintf(stderr, "fopen error for %s\n", TEMP_LOG_FILE);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	
@@ -97,7 +103,7 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 	sig_act.sa_handler = SIG_DFL;
 	if (sigaction(SIGINT, &sig_act, NULL) != 0) {
 		fprintf(stderr, "sigaction error\n");
-		exit(1);
+		raise(SIGINT);
 	}
 
 	chdir(execute_path);
@@ -117,6 +123,10 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 	if (src_path) free(src_path);
 	free(dst_path);
 	free(execute_path);
+
+	gettimeofday(&end_t, NULL); // 종료 시간 기록
+	ssu_runtime(&begin_t, &end_t); // 프로그램 실행 시간 계산, 출력
+
 	exit(0);
 }
 
@@ -136,7 +146,7 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 
 	if (stat(src_path_name, &statbuf) < 0) {
 		fprintf(stderr, "stat error for %s\n", src_path_name);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	// src가 일반 파일인 경우
@@ -165,7 +175,7 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 	// src가 디렉토리인 경우
 	if ((dp = opendir(src_path_name)) == NULL) {
 		fprintf(stderr, "opendir error for %s\n", src_path_name);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	current_path = getcwd(NULL, 0);
@@ -317,7 +327,7 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 
 	if ((dp = opendir(dst_path_name)) == NULL) {
 		fprintf(stderr, "opendir error for %s\n", dst_path_name);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	current_path = getcwd(NULL, 0);
@@ -326,7 +336,7 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 	// src가 디렉토리가 아닌 파일이었다면 나머지 모든 파일 삭제해야함
 	if (stat(src_path_name, &statbuf) < 0) {
 		fprintf(stderr, "stat error for %s\n", src_path_name);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	if (!S_ISDIR(statbuf.st_mode)) {
@@ -431,6 +441,7 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 }
 
 static void sigint_during_sync_handler(int signo){
+	printf("SIGINT raised during sync\n");
 	chdir(execute_path);
 	removeDirectory(NULL, NULL, dst_path);
 	rmdir(dst_path);
@@ -438,6 +449,8 @@ static void sigint_during_sync_handler(int signo){
 	removeDirectory(NULL, NULL, temp_dir_absolute_path);
 	rmdir(temp_dir_absolute_path);
 
+	gettimeofday(&end_t, NULL); // 종료 시간 기록
+	ssu_runtime(&begin_t, &end_t); // 프로그램 실행 시간 계산, 출력
 	exit(0);
 }
 
@@ -450,7 +463,7 @@ void syncDirectory(const char *src_path_name, const char *dst_path_name, int syn
 
 	if ((dp = opendir(src_path_name)) == NULL) {
 		fprintf(stderr, "opendir error for %s\n", src_path_name);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	current_path = getcwd(NULL, 0);
@@ -545,7 +558,7 @@ void syncFile(const char *src_file_name, const char *dst_path_name){
 
 	if (stat(src_file_name, &statbuf) < 0) {
 		fprintf(stderr, "stat error for %s\n", src_file_name);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	src_file_size = statbuf.st_size;
@@ -574,7 +587,7 @@ void syncFile(const char *src_file_name, const char *dst_path_name){
 	} else { // dst 디렉토리에 이미 이름이 동일한 파일이 존재하는 경우
 		if (stat(dst_file_name, &statbuf) < 0) {
 			fprintf(stderr, "stat error for %s\n", dst_file_name);
-			exit(1);
+			raise(SIGINT);
 		}
 		if (statbuf.st_mtime == utimebuf.modtime && statbuf.st_size == src_file_size) return;
 
@@ -680,12 +693,12 @@ void copy(const char *src, const char *dst) {
 
 	if ((src_fd = open(src, O_RDONLY)) < 0) {
 		fprintf(stderr, "open error for %s\n", src);
-		exit(1);
+		raise(SIGINT);
 	}
 	
 	if (stat(src, &statbuf) < 0) {
 		fprintf(stderr, "stat error for %s\n", src);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	utimebuf.actime = statbuf.st_atime;
@@ -693,7 +706,7 @@ void copy(const char *src, const char *dst) {
 
 	if ((dst_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, statbuf.st_mode)) < 0) {
 		fprintf(stderr, "open error for %s %s\n", dst, strerror(errno));
-		exit(1);
+		raise(SIGINT);
 	}
 
 	while((length = read(src_fd, buf, BUFFER_SIZE)) > 0) {
@@ -715,7 +728,7 @@ void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target
 
 	if ((dp = opendir(target)) == NULL) {
 		fprintf(stderr, "opendir error for %s\n", target);
-		exit(1);
+		raise(SIGINT);
 	}
 
 	current_path = getcwd(NULL, 0);
@@ -746,4 +759,18 @@ void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target
 
 	chdir(current_path);
 	free(current_path);
+}
+
+void ssu_runtime(struct timeval *begin_t, struct timeval *end_t)
+{
+	// 시작시간과 종료시간의 차이 계산
+	end_t->tv_sec -= begin_t->tv_sec;
+
+	if(end_t->tv_usec < begin_t->tv_usec){
+		end_t->tv_sec--;
+		end_t->tv_usec += SECOND_TO_MICRO;
+	}
+
+	end_t->tv_usec -= begin_t->tv_usec;
+	printf("Runtime: %ld:%06ld(sec:usec)\n", end_t->tv_sec, end_t->tv_usec); // 프로그램 실행에 걸린 시간 출력
 }
