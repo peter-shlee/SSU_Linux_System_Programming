@@ -274,12 +274,13 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 	int i;
 
 	// src가 디렉토리가 아닌 파일이었다면 해당 파일만 출력
-	if (stat(src_path_name, &statbuf) < 0) {
+	if (stat(src_path_name, &statbuf) < 0) { // 파일의 종류를 알아내기 위해 stat() 호출
 		fprintf(stderr, "stat error for %s\n", src_path_name);
 		exit(1);
 	}
 
-	if (!S_ISDIR(statbuf.st_mode)) {
+	if (!S_ISDIR(statbuf.st_mode)) { // 일반 파일이라면
+		// src파일의 파일명을 구한다
 		src_relative_path = src_path_name;
 		for (i = strlen(src_path_name) - 1; i >= 0; --i) {
 			if (src_path_name[i] == '/') {
@@ -297,13 +298,14 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 			sprintf(dst_path_name, "%s/%s", dst_path, src_relative_path);
 		}
 
-		if (stat(dst_path_name, &sync_statbuf) < 0) {
+		if (stat(dst_path_name, &sync_statbuf) < 0) { // 동기화된 파일의 정보를 가져오기 위해 stat() 호출
 			fprintf(stderr, "stat error for %s\n", dst_path_name);
 			exit(1);
 		}
 
-		if (sync_statbuf.st_atime == exctime) {
-			fprintf(fp, "\t%s %ldbytes\n", src_relative_path, statbuf.st_size);
+		// 동기화 디렉토리에 파일을 동기화 할 때 동기화 했다는 사실을 표시하기 위해 atime을 프로세스 실행시 구했던 exctime으로 수정했음
+		if (sync_statbuf.st_atime == exctime) { // 동기화된 파일과 exctime이 일치하면 해당 파일은 이번 실행에서 동기화된 파일임
+			fprintf(fp, "\t%s %ldbytes\n", src_relative_path, statbuf.st_size); // 로그 출력
 		}
 
 		return;
@@ -325,10 +327,12 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 			continue;
 		}
 
-		if (!strcmp(path_name, "")) sprintf(cur_path_buf, "%s", dirp->d_name);
-		else sprintf(cur_path_buf, "%s/%s", path_name, dirp->d_name);
+		// 로그에 상대경로명을 출력하기 위해 상대경로 만드는 부분
+		if (!strcmp(path_name, "")) sprintf(cur_path_buf, "%s", dirp->d_name); // src 디렉토리 바로 아래의 파일이라면
+		else sprintf(cur_path_buf, "%s/%s", path_name, dirp->d_name); // 하위 디렉토리 내의 파일이라면
 
 		if (S_ISDIR(statbuf.st_mode) && sync_dir_flag) { // -r 옵션이 지정되었고, 디렉토리라면
+			// 다음 탐색할 디렉토리의 절대경로 생성
 			if (src_path_name[strlen(src_path_name) - 1] == '/') {
 				sprintf(next_src_path, "%s%s", src_path_name, dirp->d_name);
 			} else {
@@ -336,23 +340,24 @@ void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const c
 			}
 
 			chdir(dirp->d_name);
-			printFileNameAndSizeAtLogFile(fp, next_src_path, cur_path_buf, sync_dir_flag);
+			printFileNameAndSizeAtLogFile(fp, next_src_path, cur_path_buf, sync_dir_flag); // 다음 디렉토리에 대해서 재귀호출
 			chdir("..");
 		} else if (!S_ISDIR(statbuf.st_mode)) { // 일반 파일이라면
 			// 동기화 된 경우에만 출력///////////////////////////////////////////////////////////
+			// 동기화 된 파일의 절대 경로 생성
 			if (dst_path[strlen(dst_path) - 1] == '/') {
 				sprintf(dst_path_name, "%s%s", dst_path, cur_path_buf);
 			} else {
 				sprintf(dst_path_name, "%s/%s", dst_path, cur_path_buf);
 			}
 
-			if (stat(dst_path_name, &sync_statbuf) < 0) {
+			if (stat(dst_path_name, &sync_statbuf) < 0) { // 동기화된 파일의 정보를 얻기 위해 stat() 호출
 				fprintf(stderr, "stat error for %s\n", dst_path_name);
 				exit(1);
 			}
 
-			if (sync_statbuf.st_ctime == exctime) {
-				fprintf(fp, "\t%s %ldbytes\n", cur_path_buf, statbuf.st_size);
+			if (sync_statbuf.st_ctime == exctime) { // 이번 프로세스 실행에서 동기화된 파일이라면
+				fprintf(fp, "\t%s %ldbytes\n", cur_path_buf, statbuf.st_size); // 로그 메시지 출력
 			}
 
 		}
@@ -371,7 +376,7 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 	int i;
 	char cur_path_buf[BUFFER_SIZE];
 
-	if ((dp = opendir(dst_path_name)) == NULL) {
+	if ((dp = opendir(dst_path_name)) == NULL) { // dst 디렉터리 오픈
 		fprintf(stderr, "opendir error for %s\n", dst_path_name);
 		raise(SIGINT);
 	}
@@ -385,6 +390,7 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 		raise(SIGINT);
 	}
 
+	// src가 아닌 일반 파일인 경우
 	if (!S_ISDIR(statbuf.st_mode)) {
 		// src 파일의 상대경로명 구함
 		src_relative_path = src_path_name;
@@ -395,7 +401,7 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 			}
 		}
 
-		while ((dirp = readdir(dp)) != NULL) {
+		while ((dirp = readdir(dp)) != NULL) { // dst 디렉토리 내의 모든 파일에 대해서 
 			if (dirp->d_ino == 0) continue;
 			if (!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) continue;
 
@@ -404,20 +410,21 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 				continue;
 			}
 
-			if (tmp_log_fp) {
-				if (!strcmp(path_name, "")) sprintf(cur_path_buf, "%s", dirp->d_name);
-				else sprintf(cur_path_buf, "%s/%s", path_name, dirp->d_name);
+			if (tmp_log_fp) { // 삭제 로그를 출력해야 한다면(삭제 로그를 출력해야 할 때 이외에는 tmp_log_fp에 NULL 넣어서 호출)
+				// 로그에 상대경로명을 출력하기 위해 상대경로 만드는 부분
+				if (!strcmp(path_name, "")) sprintf(cur_path_buf, "%s", dirp->d_name); // src 디렉토리 바로 아래의 파일이라면
+				else sprintf(cur_path_buf, "%s/%s", path_name, dirp->d_name); // 하위 디렉토리 내의 파일이라면
 			}
 
 			if (strcmp(src_relative_path, dirp->d_name)) { // 파일명과 일치하지 않는다면
 				if (S_ISDIR(statbuf.st_mode)) { // 디렉토리라면
-					absolute_path_name_of_target_file = realpath(dirp->d_name, NULL);
-					removeDirectory(tmp_log_fp, cur_path_buf, absolute_path_name_of_target_file);
-					rmdir(absolute_path_name_of_target_file);
+					absolute_path_name_of_target_file = realpath(dirp->d_name, NULL); // 삭제할 디렉토리의 절대경로 구함
+					removeDirectory(tmp_log_fp, cur_path_buf, absolute_path_name_of_target_file); // 해당 디렉토리 내의 모든 파일 삭제
+					rmdir(absolute_path_name_of_target_file); // 해당 디렉토리 삭제
 					free(absolute_path_name_of_target_file);
 				} else { // 디렉토리가 아닌 일반 파일이라면
-					unlink(dirp->d_name);
-					fprintf(tmp_log_fp, "\t%s delete\n", cur_path_buf);
+					unlink(dirp->d_name); // 파일 unlink
+					fprintf(tmp_log_fp, "\t%s delete\n", cur_path_buf); // 파일 삭제 로그 출력
 				}
 			}
 		}
@@ -427,7 +434,8 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 	}
 
 
-	while ((dirp = readdir(dp)) != NULL) {
+	// src가 디렉토리인 경우
+	while ((dirp = readdir(dp)) != NULL) { // dst 디렉토리 내의 모든 파일에 대해서 
 		if (dirp->d_ino == 0) continue;
 		if (!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) continue;
 
@@ -436,27 +444,30 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 			continue;
 		}
 
+		// src 내부의 파일의 절대경로 생성
 		if (src_path_name[strlen(src_path_name) - 1] == '/') {
 			sprintf(next_src_path, "%s%s", src_path_name, dirp->d_name);
 		} else {
 			sprintf(next_src_path, "%s/%s", src_path_name, dirp->d_name);
 		}
 
+		// 삭제 로그를 찍어야 한다면
 		if (tmp_log_fp) {
+			// 로그에 출력할 상대경로 생성
 			if (!strcmp(path_name, "")) sprintf(cur_path_buf, "%s", dirp->d_name);
 			else sprintf(cur_path_buf, "%s/%s", path_name, dirp->d_name);
 		}
 
 		if (access(next_src_path, F_OK) < 0) { // src에 존재하지 않는 파일이었다면 (동기화로 생성된 것이 아닌 파일)
 		  	if (S_ISDIR(statbuf.st_mode)) { // 디렉토리라면
-				absolute_path_name_of_target_file = realpath(dirp->d_name, NULL);
-				removeDirectory(tmp_log_fp, cur_path_buf, absolute_path_name_of_target_file);
-				rmdir(absolute_path_name_of_target_file);
+				absolute_path_name_of_target_file = realpath(dirp->d_name, NULL); // 해당 디렉토리의 절대경로 생성
+				removeDirectory(tmp_log_fp, cur_path_buf, absolute_path_name_of_target_file); // 해당 디렉토리 내의 모든 파일 삭제
+				rmdir(absolute_path_name_of_target_file); // 해당 디렉토리 삭제 
 				free(absolute_path_name_of_target_file);
 
 			} else { // 일반 파일이라면
-				unlink(dirp->d_name);
-				fprintf(tmp_log_fp, "\t%s delete\n", cur_path_buf);
+				unlink(dirp->d_name); // 해당 파일 unlink
+				fprintf(tmp_log_fp, "\t%s delete\n", cur_path_buf); // 로그 출력
 			}
 
 			continue;
@@ -469,9 +480,9 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 				do_mOption(tmp_log_fp, cur_path_buf, next_src_path, dirp->d_name, sync_dir_flag); // next_src_path는 위에서 생성함
 
 			} else { // 하위 디렉토리는 동기화 하지 않은 경우 - 하위 디렉토리는 동기화 되지 않기 때문에 무조건 지워야 하는 파일임
-				absolute_path_name_of_target_file = realpath(dirp->d_name, NULL);
-				removeDirectory(tmp_log_fp, cur_path_buf, absolute_path_name_of_target_file);
-				rmdir(absolute_path_name_of_target_file);
+				absolute_path_name_of_target_file = realpath(dirp->d_name, NULL); // 해당 디렉토리의 절대경로 생성
+				removeDirectory(tmp_log_fp, cur_path_buf, absolute_path_name_of_target_file); // 해당 디렉토리 내의 모든 파일 삭제
+				rmdir(absolute_path_name_of_target_file); // 해당 디렉토리 삭제
 				free(absolute_path_name_of_target_file);
 
 				continue;
@@ -487,17 +498,17 @@ void do_mOption(FILE *tmp_log_fp, const char *path_name,  const char *src_path_n
 }
 
 static void sigint_during_sync_handler(int signo){
-	printf("SIGINT raised during sync\n");
-	chdir(execute_path);
-	removeDirectory(NULL, NULL, dst_path);
-	rmdir(dst_path);
-	rename(temp_dir_absolute_path, dst_path);
-	removeDirectory(NULL, NULL, temp_dir_absolute_path);
-	rmdir(temp_dir_absolute_path);
+	printf("SIGINT raised during sync\n"); // SIGINT 전달됐다는 메시지 출력
+	chdir(execute_path); // 프로세스 실행된 위치로 chdir
+	removeDirectory(NULL, NULL, dst_path); // 원래 상태로 복원하기 위해 동기화 하고 있던 디렉토리 내의 모든 파일들을 삭제함
+	rmdir(dst_path); // 동기화 디렉토리 삭제
+	rename(temp_dir_absolute_path, dst_path); // 백업해뒀던 기존 동기화 디렉토리를 이용하여 복원함
+	//removeDirectory(NULL, NULL, temp_dir_absolute_path);
+	//rmdir(temp_dir_absolute_path);
 
 	gettimeofday(&end_t, NULL); // 종료 시간 기록
 	ssu_runtime(&begin_t, &end_t); // 프로그램 실행 시간 계산, 출력
-	exit(0);
+	exit(0); // 프로세스 종료
 }
 
 void syncDirectory(const char *src_path_name, const char *dst_path_name, int sync_dir_flag){
@@ -507,7 +518,7 @@ void syncDirectory(const char *src_path_name, const char *dst_path_name, int syn
 	char *current_path;
 	char next_dst_path[PATH_MAX];
 
-	if ((dp = opendir(src_path_name)) == NULL) {
+	if ((dp = opendir(src_path_name)) == NULL) { // 동기화 해야 할 src 디렉토리 오픈
 		fprintf(stderr, "opendir error for %s\n", src_path_name);
 		raise(SIGINT);
 	}
@@ -515,7 +526,7 @@ void syncDirectory(const char *src_path_name, const char *dst_path_name, int syn
 	current_path = getcwd(NULL, 0);
 	chdir(src_path_name);
 
-	while ((dirp = readdir(dp)) != NULL) {
+	while ((dirp = readdir(dp)) != NULL) { // src 디렉토리 내의 모든 파일에 대해서
 		if (dirp->d_ino == 0) continue;
 		if (!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) continue;
 
@@ -526,20 +537,20 @@ void syncDirectory(const char *src_path_name, const char *dst_path_name, int syn
 
 		if (S_ISDIR(statbuf.st_mode)) { // 해당 파일이 디렉토리라면
 			// 옵션에 따라 달라져야 할 부분
-			if (sync_dir_flag) {
+			if (sync_dir_flag) { // -r 옵션이 지정되어 있다면
+				// 동기화할 디렉토리의 절대경로명을 생성한다
 				if (dst_path_name[strlen(dst_path_name) - 1] == '/') {
 					sprintf(next_dst_path, "%s%s", dst_path_name, dirp->d_name);
 				} else {
 					sprintf(next_dst_path, "%s/%s", dst_path_name, dirp->d_name);
 				}
 
-				if (access(next_dst_path, F_OK) < 0) mkdir(next_dst_path, statbuf.st_mode);
-				syncDirectory(dirp->d_name, next_dst_path, sync_dir_flag);
+				if (access(next_dst_path, F_OK) < 0) mkdir(next_dst_path, statbuf.st_mode); // 해당 디렉토리가 동기화 디렉토리 내에 존재하지 않는다면 새로 생성
+				syncDirectory(dirp->d_name, next_dst_path, sync_dir_flag); // 해당 디렉토리에 대해 재귀호출
 			} else continue;
 
 		} else { // 디렉토리가 아닌 파일이라면
-			// 하위 디렉토리도 동기화 하는 옵션일때는 제대로 수행되지 않을 것임
-			syncFile(dirp->d_name, dst_path_name); //////////dst_path_name 바뀌도록 해야함
+			syncFile(dirp->d_name, dst_path_name); // 해당 파일에 대해 동기화 수행
 		}
 	}
 
@@ -560,11 +571,12 @@ int checkSyncTarget(const char *src_file_name, const char *dst_path_name){
 		exit(1);
 	}
 
+	// 동기화 할 파일의 정보들을 저장해둔다
 	src_file_size = statbuf.st_size;
 	utimebuf.actime = statbuf.st_atime;
 	utimebuf.modtime = statbuf.st_mtime;
 
-	// src 파일의 상대경로명 구함
+	// src 파일의 파일명 구함
 	src_relative_path = src_file_name;
 	for (i = strlen(src_file_name) - 1; i >= 0; --i) {
 		if (src_file_name[i] == '/') {
@@ -580,17 +592,17 @@ int checkSyncTarget(const char *src_file_name, const char *dst_path_name){
 		sprintf(dst_file_name, "%s/%s", dst_path_name, src_relative_path);
 	}
 	
-	if(access(dst_file_name, F_OK) < 0) {
+	if(access(dst_file_name, F_OK) < 0) { // 동기화 디렉토리에 해당 파일이 존재하지 않는다면
 		return 1;
 	} else { // dst 디렉토리에 이미 이름이 동일한 파일이 존재하는 경우
-		if (stat(dst_file_name, &statbuf) < 0) {
+		if (stat(dst_file_name, &statbuf) < 0) { // 해당 파일의 정보를 가져온다
 			fprintf(stderr, "stat error for %s\n", dst_file_name);
 			exit(1);
 		}
-		if (statbuf.st_mtime == utimebuf.modtime && statbuf.st_size == src_file_size) return 0;
+		if (statbuf.st_mtime == utimebuf.modtime && statbuf.st_size == src_file_size) return 0; // 동기화 디렉토리 내의 파일과 동기화할 파일의 최종 수정시간, 파일 크기가 동일하면 같은 파일이므로 새롭게 동기화 할 필요가 없다. 따라서 0리턴
 	}
 
-	return 1;
+	return 1; // 여기까지 왔으면 동기화 해야 하는 파일이다. 1 리턴
 }
 
 
@@ -607,6 +619,7 @@ void syncFile(const char *src_file_name, const char *dst_path_name){
 		raise(SIGINT);
 	}
 
+	// 해당 파일에 대한 정보들을 저장해 둔다
 	src_file_size = statbuf.st_size;
 	utimebuf.actime = statbuf.st_atime;
 	utimebuf.modtime = statbuf.st_mtime;
@@ -627,24 +640,25 @@ void syncFile(const char *src_file_name, const char *dst_path_name){
 		sprintf(dst_file_name, "%s/%s", dst_path_name, src_relative_path);
 	}
 	
-	if(access(dst_file_name, F_OK) < 0) {
+	if(access(dst_file_name, F_OK) < 0) { // 동기화 디렉토리에 해당 파일이 존재하지 않는다면
 		//printf("copy %s to %s\n", src_file_name, dst_file_name); ////////////////////////////////////////////////////
-		copy(src_file_name, dst_file_name);
+		copy(src_file_name, dst_file_name); // 파일 복사하여 동기화 수행
 	} else { // dst 디렉토리에 이미 이름이 동일한 파일이 존재하는 경우
 		if (stat(dst_file_name, &statbuf) < 0) {
 			fprintf(stderr, "stat error for %s\n", dst_file_name);
 			raise(SIGINT);
 		}
-		if (statbuf.st_mtime == utimebuf.modtime && statbuf.st_size == src_file_size) return;
+		if (statbuf.st_mtime == utimebuf.modtime && statbuf.st_size == src_file_size) return; // 동일한 파일이 이미 존재한다면 동기화가 필요 없으므로 리턴
 
+		// 이름만 같고 서로 다른 파일이라면
 		//printf("copy %s to %s\n", src_file_name, dst_file_name); ////////////////////////////////////////////////////
-		remove(dst_file_name);
-		copy(src_file_name, dst_file_name);
+		remove(dst_file_name); // 동일한 이름의 기존 파일 삭제
+		copy(src_file_name, dst_file_name); // 복사하여 동기화 수행
 	}
 }
 
-void printUsage(const char *process_name){
-	fprintf(stderr, "usage : %s <option> <src> <dst>\n", process_name);
+void printUsage(const char *process_name){ 
+	fprintf(stderr, "usage : %s <option> <src> <dst>\n", process_name); // 사용법 출력
 }
 
 void checkProcessArguments(int argc, char *argv[]) { // 옵션 주어졌을 경우 제대로 동작 안함
@@ -656,8 +670,8 @@ void checkProcessArguments(int argc, char *argv[]) { // 옵션 주어졌을 경�
 		exit(1);
 	}
 
-	if (argv[1][0] == '-') {
-		switch(argv[1][1]) {
+	if (argv[1][0] == '-') { // 옵션이 전달됐을 때
+		switch(argv[1][1]) { // 어떤 옵션인지 판별
 			case 'r':
 				r_option = 1;
 				break;
@@ -668,12 +682,14 @@ void checkProcessArguments(int argc, char *argv[]) { // 옵션 주어졌을 경�
 				m_option = 1;
 				break;
 			default:
-				printUsage(argv[0]);
-				exit(1);
+				printUsage(argv[0]);// 잘못된 옵션 전달됐으면 사용법 출력하고
+				exit(1); // 프로세스 종료
 		}
+	       	// 전달인자로 전달된 src와 dst 문자열 저장
 		src = argv[2];
 		dst = argv[3];
 	} else {
+	       	// 전달인자로 전달된 src와 dst 문자열 저장
 		src = argv[1];
 		dst = argv[2];
 	}
@@ -725,7 +741,7 @@ void checkProcessArguments(int argc, char *argv[]) { // 옵션 주어졌을 경�
 	}
 
 	chdir(dst); // dst 인자는 무조건 디렉토리
-	dst_path = getcwd(NULL, 0);
+	dst_path = getcwd(NULL, 0); // dst 디렉토리의 절대경로 저장
 	chdir(execute_path);
 }
 
@@ -737,7 +753,7 @@ void copy(const char *src, const char *dst) {
 	struct stat statbuf;
 	struct utimbuf utimebuf;
 
-	if ((src_fd = open(src, O_RDONLY)) < 0) {
+	if ((src_fd = open(src, O_RDONLY)) < 0) { // src파일 오픈
 		fprintf(stderr, "open error for %s\n", src);
 		raise(SIGINT);
 	}
@@ -747,19 +763,21 @@ void copy(const char *src, const char *dst) {
 		raise(SIGINT);
 	}
 
+	// 동기화 파일에 저장할 actime 지정, 동기화 됐음을 표시하기 위하여 프로세스 시작 부분에서 저장했던 exctime을 동기화된 파일의 actime으로 지정한다
 	utimebuf.actime = exctime;
+	// src 파일의 최종 수정시간 가져와 저장
 	utimebuf.modtime = statbuf.st_mtime;
 
-	if ((dst_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, statbuf.st_mode)) < 0) {
+	if ((dst_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, statbuf.st_mode)) < 0) { // 동기화 파일 생성
 		fprintf(stderr, "open error for %s %s\n", dst, strerror(errno));
 		raise(SIGINT);
 	}
 
-	while((length = read(src_fd, buf, BUFFER_SIZE)) > 0) {
+	while((length = read(src_fd, buf, BUFFER_SIZE)) > 0) { // 기존의 파일을 새로 생성한 동기화 파일에 복사한다
 		write(dst_fd, buf, length);
 	}
 
-	utime(dst, &utimebuf);
+	utime(dst, &utimebuf); // 동기화 파일의 시간 정보를 수정한다
 	
 	close(src_fd);
 	close(dst_fd);
@@ -772,7 +790,7 @@ void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target
 	char *current_path;
 	char cur_path_buf[PATH_MAX];
 
-	if ((dp = opendir(target)) == NULL) {
+	if ((dp = opendir(target)) == NULL) { // 삭제할 디렉토리 open
 		fprintf(stderr, "opendir error for %s\n", target);
 		raise(SIGINT);
 	}
@@ -780,7 +798,7 @@ void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target
 	current_path = getcwd(NULL, 0);
 	chdir(target);
 
-	while ((dirp = readdir(dp)) != NULL) {
+	while ((dirp = readdir(dp)) != NULL) { // 해당 디렉토리 내의 모든 파일에 대해서 
 		if (dirp->d_ino == 0) continue;
 		if (!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) continue;
 
@@ -789,17 +807,18 @@ void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target
 			continue;
 		}
 
-		if (tmp_log_fp) {
+		if (tmp_log_fp) { // 삭제 로그를 찍어야 한다면
+			// 삭제 로그에 출력할 상대 경로를 생성한다
 			if (!strcmp(path_name, "")) sprintf(cur_path_buf, "%s", dirp->d_name);
 			else sprintf(cur_path_buf, "%s/%s", path_name, dirp->d_name);
 		}
 
 		if (S_ISDIR(statbuf.st_mode)) { // 해당 파일이 디렉토리라면
-			removeDirectory(tmp_log_fp, cur_path_buf, dirp->d_name);
-			rmdir(dirp->d_name);
+			removeDirectory(tmp_log_fp, cur_path_buf, dirp->d_name); // 재귀호출하여 해당 디렉토리 내의 모든 파일을 삭제
+			rmdir(dirp->d_name); // 해당 디렉토리 삭제
 		} else { // 디렉토리가 아닌 파일이라면
-			unlink(dirp->d_name);
-			if (tmp_log_fp) fprintf(tmp_log_fp, "\t%s delete\n", cur_path_buf);
+			unlink(dirp->d_name); // 해당 파일 unlink
+			if (tmp_log_fp) fprintf(tmp_log_fp, "\t%s delete\n", cur_path_buf); // 삭제 로그를 출력해야 한다면, 임시 로그 파일에 삭제 로그를 출력
 		}
 	}
 
