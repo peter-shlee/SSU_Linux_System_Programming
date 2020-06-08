@@ -14,62 +14,62 @@
 #define SECOND_TO_MICRO 1000000
 void ssu_runtime(struct timeval *begin_t, struct timeval *end_t);
 struct timeval begin_t, end_t;
-time_t exctime;
+time_t exctime; // 프로세스 시작 시간 저장할 변수 (log 출력에 이용)
 
 #define BUFFER_SIZE 1024
-#define COMMAND_BUFFER_SIZE 4096
+#define COMMAND_BUFFER_SIZE 4096 // tar 명령어 저장할 버퍼 사이즈
 
 const char *LOG_FILE_NAME = "ssu_rsync_log";
-const char *TEMP_PATH_NAME = "tmp_for_sigint_20160548";
-const char *TEMP_LOG_FILE = "tmp_for_delete_log_20160548";
-const char *TAR_FILE_NAME = "tmptar20160548.tar";
-char *execute_path;
-char *src_path;
-char *dst_path;
-char *src;
-char *dst;
-char *temp_dir_absolute_path;
+const char *TEMP_PATH_NAME = "tmp_for_sigint_20160548"; // SIGINT 발생 시 원상 복구를 위해 기존의 파일들을 백업해 둘 디렉토리 이름
+const char *TEMP_LOG_FILE = "tmp_for_delete_log_20160548"; // -m 옵션 사용 시 삭제된 파일들의 로그들을 임시로 기록해 둘 임시 파일 이름
+const char *TAR_FILE_NAME = "tmptar20160548.tar"; // -t 옵션 사용 시 생성될 tar 파일의 이름
+char *execute_path; // 프로세스 실행 위치의 절대경로 저장할 포인터
+char *src_path; // src 디렉토리 절대 경로 저장할 포인터
+char *dst_path; // dst 디렉토리 절대 경로 저장할 포인터
+char *src; // 프로세스 실행 시 전달된 src 디렉토리 혹은 파일 이름 저장할 포인터
+char *dst; // 프로세스 실행 시 전달된 dst 디렉토리 혹은 파일 이름 저장할 포인터
+char *temp_dir_absolute_path; // 임시로 사용할 디렉토리의 절대경로 저장할 포인터
 
-void do_tOption(const char *src_path_name, const char *dst_path_name);
-void do_mOption(FILE *tmp_log_fp, const char *path_name, const char *src_path_name, const char *dst_path_name, int sync_dir_flag);
-void printUsage(const char *process_name);
-void checkProcessArguments(int argc, char *argv[]);
-void syncDirectory(const char *src_path_name, const char *dst_path_name, int sync_dir_flag);
-void syncFile(const char *src_file_name, const char *dst_path_name);
-void copy(const char *src, const char *dst);
-void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target);
-void printLog(FILE *tmp_log_fp, const char *src_path_name, int sync_dir_flag);
-void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const char *path_name, int sync_dir_flag);
-int checkSyncTarget(const char *src_file_name, const char *dst_path_name);
+void do_tOption(const char *src_path_name, const char *dst_path_name); // -t 옵션 수행하는 함수
+void do_mOption(FILE *tmp_log_fp, const char *path_name, const char *src_path_name, const char *dst_path_name, int sync_dir_flag); // -m 옵션 수행하는 함수
+void printUsage(const char *process_name); // 프로세스 사용법 출력하는 함수
+void checkProcessArguments(int argc, char *argv[]); // 프로세스에 전달된 인자들이 유효한지 확인하는 함수
+void syncDirectory(const char *src_path_name, const char *dst_path_name, int sync_dir_flag); // 디렉토리를 동기화하는 함수
+void syncFile(const char *src_file_name, const char *dst_path_name); // 파일을 동기화하는 함수
+void copy(const char *src, const char *dst); // 파일을 복사하는 함수
+void removeDirectory(FILE *tmp_log_fp, const char *path_name, const char *target); // 디렉토리와 그 디렉토리 하위의 모든 파일을 삭제하는 함수
+void printLog(FILE *tmp_log_fp, const char *src_path_name, int sync_dir_flag); // 로그를 출력하는 함수
+void printFileNameAndSizeAtLogFile(FILE * fp, const char *src_path_name, const char *path_name, int sync_dir_flag); // 동기화된 파일의 이름과 사이즈를 로그파일에 출력하는 함수
+int checkSyncTarget(const char *src_file_name, const char *dst_path_name); // 동기화 대상 파일인지 확인하는 함수
 
 int r_option;
 int t_option;
 int m_option;
 
-static void sigint_during_sync_handler(int signo);
+static void sigint_during_sync_handler(int signo); // 동기화 중 발생한 SIGINT의 핸들러, 동기화를 취소하고, 기존의 내용으로 복원한다
 
 int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
-	FILE *tmp_log_fp;
+	FILE *tmp_log_fp; // 임시 로그 파일의 디스크립터
 	struct sigaction sig_act;
 	sigset_t sig_set;
 	gettimeofday(&begin_t, NULL); // 시작 시간 기록
 	exctime = time(NULL);
 
-	execute_path = getcwd(NULL, 0);
-	umask(0);
-	checkProcessArguments(argc, argv);
+	execute_path = getcwd(NULL, 0); // 프로세스 실행 위치의 절대경로 구해서 저장
+	umask(0); 
+	checkProcessArguments(argc, argv); // 프로세스에 전달된 인자들이 유효한지 확인
 	
 	// 파일 동기화 중 SIGINT 전달 될 때를 대비한 임시 파일 저장 디렉토리 초기화
-	if (chdir(TEMP_PATH_NAME) == 0) { 
+	if (chdir(TEMP_PATH_NAME) == 0) {  // 임시 파일 저장 디렉토리가 이미 존재한다면 삭제하고 다시 생성한다
 		chdir(execute_path);
 		removeDirectory(NULL, NULL, TEMP_PATH_NAME);
 		rmdir(TEMP_PATH_NAME);
 	}
 	mkdir(TEMP_PATH_NAME, 0777);
-	temp_dir_absolute_path = realpath(TEMP_PATH_NAME, NULL);
+	temp_dir_absolute_path = realpath(TEMP_PATH_NAME, NULL); // 임시 파일 저장 디렉토리의 절대 경로를 구해놓는다
 
-	syncDirectory(dst_path,temp_dir_absolute_path, 1);
-	// 여기서 SIGINT 핸들러 등록하기
+	syncDirectory(dst_path,temp_dir_absolute_path, 1); // 기존의 동기화 디렉토리의 모든 파일들을 임시 파일 저장 디렉토리로 백업한다
+	// SIGINT 핸들러 등록한다
 	sigemptyset(&sig_act.sa_mask);
 	sig_act.sa_flags = 0;
 	sig_act.sa_handler = sigint_during_sync_handler;
@@ -78,26 +78,26 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 		exit(1);
 	}
 
-	if ((tmp_log_fp = fopen(TEMP_LOG_FILE, "w+")) == NULL) {
+	if ((tmp_log_fp = fopen(TEMP_LOG_FILE, "w+")) == NULL) { // 임시 로그 파일 생성한다
 		fprintf(stderr, "fopen error for %s\n", TEMP_LOG_FILE);
 		raise(SIGINT);
 	}
 
 	
 	// 동기화
-	if (t_option){
+	if (t_option){ // -t 옵션이 지정된 경우
 		if (src_path) { // src 인자가 디렉토리인 경우
-			do_tOption(src_path, dst_path);
+			do_tOption(src_path, dst_path); // 디렉토리에 대해 toption 수행
 		} else { // src 인자가 일반 파일인 경우
-			do_tOption(src, dst_path);
+			do_tOption(src, dst_path); // 파일에 대해 toption 수행
 		}
 	} else {
 		if (src_path) { // src 인자가 디렉토리인 경우
-			syncDirectory(src_path, dst_path, r_option);
-			if (m_option) do_mOption(tmp_log_fp, "", src_path, dst_path, r_option);
+			syncDirectory(src_path, dst_path, r_option); // 디렉토리에 대해 동기화 수행
+			if (m_option) do_mOption(tmp_log_fp, "", src_path, dst_path, r_option); // -m 옵션 수행 (동기화 되지 않은 파일들 삭제)
 		} else { // src 인자가 일반 파일인 경우
-			syncFile(src, dst_path);
-			if (m_option) do_mOption(tmp_log_fp, "", src, dst_path, r_option);
+			syncFile(src, dst_path); // 파일에 대해 동기화 수행
+			if (m_option) do_mOption(tmp_log_fp, "", src, dst_path, r_option); // -m 옵션 수행 (동기화 되지 않은 파일들 삭제)
 		}
 	}
 
@@ -110,18 +110,18 @@ int main(int argc, char *argv[]) { ///////// exit(1)들 sigint로 바꾸기
 
 	chdir(execute_path);
 	if (src_path) { // src 인자가 디렉토리인 경우
-		printLog(tmp_log_fp, src_path, r_option);
+		printLog(tmp_log_fp, src_path, r_option); // 로그 출력
 	} else { // src 인자가 일반 파일인 경우
-		printLog(tmp_log_fp, src, r_option);
+		printLog(tmp_log_fp, src, r_option); // 로그 출력
 	}
 
 	chdir(execute_path);
-	fclose(tmp_log_fp);
-	unlink(TEMP_LOG_FILE);
-	removeDirectory(NULL, NULL, TEMP_PATH_NAME);
-	rmdir(TEMP_PATH_NAME);
+	fclose(tmp_log_fp); // 임시 로그 파일 닫는다
+	unlink(TEMP_LOG_FILE); // 임시 로그 파일 삭제한다
+	removeDirectory(NULL, NULL, TEMP_PATH_NAME); // 임시 백업 디렉토리 내부 모든 파일들을 삭제한다
+	rmdir(TEMP_PATH_NAME); // 임시 백업 디렉토리 삭제한다
 
-
+	// 기타 동적할당 했던 문자열들 해제한다
 	if (src_path) free(src_path);
 	free(dst_path);
 	free(execute_path);
@@ -142,17 +142,18 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 	int i;
 	int do_sync_flag = 0;
 
-	if (access(TAR_FILE_NAME, F_OK) == 0) unlink(TAR_FILE_NAME);
+	if (access(TAR_FILE_NAME, F_OK) == 0) unlink(TAR_FILE_NAME); // 이전에 생성했던 tar파일이 남아있다면 삭제한다
 
-	sprintf(tar_command, "tar cvf %s ", TAR_FILE_NAME);
+	sprintf(tar_command, "tar cvf %s ", TAR_FILE_NAME); // tar 명령어를 만든다
 
-	if (stat(src_path_name, &statbuf) < 0) {
+	if (stat(src_path_name, &statbuf) < 0) { // 파일의 종류를 알아내기 위해 stat함수 사용
 		fprintf(stderr, "stat error for %s\n", src_path_name);
 		raise(SIGINT);
 	}
 
 	// src가 일반 파일인 경우
 	if (!S_ISDIR(statbuf.st_mode)) {
+		// src파일의 상대경로 명 구한다
 		src_relative_path = src_path_name;
 		for (i = strlen(src_path_name) - 1; i >= 0; --i) {
 			if (src_path_name[i] == '/') {
@@ -161,14 +162,16 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 			}
 		}
 
-		if(checkSyncTarget(src_relative_path, dst_path_name)){
+		if(checkSyncTarget(src_relative_path, dst_path_name)){ // 해당 파일이 동기화 대상인지 (동일한 파일이 동기화 디렉토리 내에 없는지) 확인한다
+			// tar 명령어 생성
 			strcat(tar_command, src_relative_path);
 			strcat(tar_command, "> /dev/null"); /////////////////////////////////////////////////
 			system(tar_command);
+			// 묶음 해제 명령어 생성
 			sprintf(tar_command, "tar xvf %s -C %s", TAR_FILE_NAME, dst_path_name);
 			strcat(tar_command, "> /dev/null"); //////////////////////////////////////////////////
 			system(tar_command);
-			unlink(TAR_FILE_NAME);
+			unlink(TAR_FILE_NAME); // 사용한 tar 파일은 삭제한다
 			return;
 		} else {
 			return;
@@ -185,9 +188,9 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 	current_path = getcwd(NULL, 0);
 	chdir(src_path_name);
 
-	if (access(TAR_FILE_NAME, F_OK) == 0) unlink(TAR_FILE_NAME);
+	if (access(TAR_FILE_NAME, F_OK) == 0) unlink(TAR_FILE_NAME); // 해당 디렉토리 내부에 이전에 생성했던 tar파일이 남아있다면 삭제한다
 
-	while ((dirp = readdir(dp)) != NULL) {
+	while ((dirp = readdir(dp)) != NULL) { // 디렉토리 내의 모든 파일들을 확인한다
 		if (dirp->d_ino == 0) continue;
 		if (!strcmp(dirp->d_name, ".") || !strcmp(dirp->d_name, "..")) continue;
 
@@ -197,19 +200,22 @@ void do_tOption(const char *src_path_name, const char *dst_path_name){
 		}
 
 		if (S_ISDIR(statbuf.st_mode)) { // 해당 파일이 디렉토리라면
-			;
+			; // 스킵
 		} else { // 디렉토리가 아닌 파일이라면
 			if(checkSyncTarget(dirp->d_name, dst_path_name)) {// 동기화 해야 하는 파일이라면
 				do_sync_flag = 1;
+				// 명령어 뒤에 해당 파일 이름 덧붙임
 				strcat(tar_command, dirp->d_name);
 				strcat(tar_command, " ");
 			}
 		}
 	}
 
-	if (do_sync_flag) {
+	if (do_sync_flag) { // 동기화 해야 하는 파일이 존재한다면
+		// tar 명령어 생성
 		strcat(tar_command, "> /dev/null"); /////////////////////////////////////////////////
 		system(tar_command);
+		// 묶음 해제 명령어 생성
 		sprintf(tar_command, "tar xvf %s -C %s", TAR_FILE_NAME, dst_path_name);
 		strcat(tar_command, "> /dev/null"); /////////////////////////////////////////////////
 		system(tar_command);
@@ -227,28 +233,30 @@ void printLog(FILE *tmp_log_fp, const char *src_path_name, int sync_dir_flag){
 	char *option;
 	char tmp_log_buffer[BUFFER_SIZE];
 
-	if ((log_fp = fopen(LOG_FILE_NAME, "a")) == NULL) {
+	if ((log_fp = fopen(LOG_FILE_NAME, "a")) == NULL) { // 로그파일 오픈
 	       fprintf(stderr, "fopen error for %s\n", LOG_FILE_NAME);
 	       exit(1);
 	}
 
+	// 어떤 옵션이 지정되었는지 저장
 	if (m_option) option = "-m";
 	else if (r_option) option = "-r";
 	else if (t_option) option = "-t";
 	else option = "\0";
 
+	// 현재 시간 구한다
 	current_time = time(NULL);
 	time_str = ctime(&current_time);
 	time_str[strlen(time_str) -1] = '\0';
 
-	fprintf(log_fp, "[%s] ssu_rsync %s %s %s\n", time_str, option, src, dst);
+	fprintf(log_fp, "[%s] ssu_rsync %s %s %s\n", time_str, option, src, dst); // 로그 첫 부분에 출력할 문자열 생성
 	chdir(src_path_name);
-	printFileNameAndSizeAtLogFile(log_fp, src_path_name, "", sync_dir_flag);
+	printFileNameAndSizeAtLogFile(log_fp, src_path_name, "", sync_dir_flag); // 동기화 된 파일들의 이름과 사이즈를 출력한다
 	chdir(execute_path);
 
-	fseek(tmp_log_fp, 0, SEEK_SET);
+	fseek(tmp_log_fp, 0, SEEK_SET); // 임시 로그파일을 확인한다
 	while (fgets(tmp_log_buffer, sizeof(tmp_log_buffer), tmp_log_fp) != NULL) {
-		fprintf(log_fp, "%s", tmp_log_buffer);
+		fprintf(log_fp, "%s", tmp_log_buffer); // 임시 로그파일에 기록되어있던 삭제 로그들을 로그파일에 옮겨 출력한다
 	}
 
 	fclose(log_fp);
