@@ -1,0 +1,14 @@
+[Sun Jun 21 21:10:18 2020] ssu_rsync -t ../project2 dst
+	ssu_mntr.c 40282bytes
+	log.txt 229bytes
+	monitor.o 9136bytes
+	ssu_mntr 36600bytes
+	tmp 4bytes
+	monitor.c 10147bytes
+	ssu_mntr.o 35168bytes
+	Makefile 179bytes
+[Sun Jun 21 21:12:17 2020] ssu_rsync -t ../ dst
+	README.md 54bytes
+	project2.tar 174080bytes
+	test.c 164bytes
+	a.out 8424bytes
