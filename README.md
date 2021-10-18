@@ -1,2 +1,2 @@
 # ssulsp
-Soongsil university Linux system programming
+Linux system programming
